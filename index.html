@@ -1,0 +1,997 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pixel Art Editor - Drawing</title>
+<style>
+
+:root{ 
+  --bg:#eeeeee; 
+  --panel:#ffffff; 
+  --ink:#070707; 
+  --canvas:min(43vw,420px) 
+} 
+
+*{ 
+  box-sizing:border-box 
+} 
+
+html, 
+body{ 
+  margin:0; 
+  padding:0 
+} 
+
+body{ 
+  background:var(--bg); 
+  color:var(--ink); 
+  font-family:system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif 
+} 
+
+.app{ 
+  min-height:100vh; 
+  padding:16px 
+} 
+
+/* ===== 上部バー ===== */ 
+
+.top{ 
+  height:90px; 
+  width:100%; 
+  box-sizing:border-box; 
+  display:flex; 
+  align-items:center; 
+  justify-content:space-between; 
+  padding:0 50px; 
+  color:#fefdfd; 
+  background:rgb(44,44,44); 
+  border-bottom:1px solid #ddd 
+} 
+
+.brand{ 
+  font-weight:800; 
+  letter-spacing:.08em 
+} 
+
+/* ===== マンボウ ===== */
+
+.brand-area{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0
+}
+
+.brand-logo{
+  width:52px;
+  height:52px;
+  object-fit:contain;
+  image-rendering:pixelated;
+  flex:none
+}
+
+.actions{ 
+  display:flex; 
+  gap:7px 
+} 
+
+button, 
+input{ 
+  font:inherit 
+} 
+
+button{ 
+  cursor:pointer 
+} 
+
+/* ===== ボタン ===== */ 
+
+.btn, 
+.tool, 
+.size{ 
+  border:1.5px solid var(--ink); 
+  background:#fff; 
+  border-radius:9px 
+} 
+
+.btn{ 
+  padding:8px 13px 
+} 
+
+.icon{ 
+  width:42px; 
+  height:42px; 
+  font-size:22px 
+} 
+
+/* ===== メインレイアウト ===== */ 
+
+.layout{ 
+  transform:translate(-20px,25px); 
+  width:min(900px,100%); 
+  margin:auto; 
+  display:grid; 
+  grid-template-columns:minmax(0,1fr) 320px; 
+  gap:12px 
+} 
+
+/* ===== カード ===== */ 
+
+.card{ 
+  background:var(--panel); 
+  border:1.5px solid var(--ink); 
+  border-radius:15px; 
+  padding:16px 
+} 
+
+/* ===== キャンバス ===== */ 
+
+.stage-wrap{ 
+  display:grid; 
+  place-items:center; 
+  padding:8px 0 17px 
+} 
+
+.stage{ 
+  position:relative; 
+  width:var(--canvas); 
+  max-width:100%; 
+  aspect-ratio:1; 
+  border:2px solid var(--ink); 
+  overflow:hidden; 
+  touch-action:none; 
+  background: 
+    conic-gradient( 
+      #e9e9e9 25%, 
+      #fff 0 50%, 
+      #e9e9e9 0 75%, 
+      #fff 0 
+    ) 0 0/20px 20px 
+} 
+
+#canvas, 
+#grid{ 
+  position:absolute; 
+  inset:0; 
+  width:100%; 
+  height:100%; 
+  image-rendering:pixelated 
+} 
+
+#canvas{ 
+  touch-action:none; 
+  display:block 
+} 
+
+#grid{ 
+  pointer-events:none 
+} 
+
+/* ===== サイズ変更 ===== */ 
+
+.sizes{ 
+  display:flex; 
+  justify-content:center; 
+  gap:7px; 
+  flex-wrap:wrap 
+} 
+
+.size{ 
+  min-width:76px; 
+  padding:8px; 
+  font-weight:700 
+} 
+
+.size.active{ 
+  background:#111; 
+  color:#fff 
+} 
+
+.hint{ 
+  text-align:center; 
+  font-size:12px; 
+  color:#777; 
+  margin:9px 0 0 
+} 
+
+/* ===== タイトル ===== */ 
+
+.title{ 
+  font-size:14px; 
+  font-weight:800; 
+  margin-bottom:8px 
+} 
+
+/* ===== ツール ===== */ 
+
+.tools{ 
+  display:grid; 
+  grid-template-columns:repeat(5,1fr); 
+  gap:6px 
+} 
+
+.tool{ 
+  min-height:62px; 
+  padding:4px 2px; 
+  display:flex; 
+  flex-direction:column; 
+  align-items:center; 
+  justify-content:center; 
+  gap:3px; 
+  font-size:11px 
+} 
+
+.tool span:first-child{ 
+  font-size:21px 
+} 
+
+.tool.active{ 
+  background:#111; 
+  color:#fff 
+} 
+
+/* ===== コントロール ===== */ 
+
+.controls{ 
+  width:100%; 
+  min-width:0; 
+  display:flex; 
+  flex-direction:column; 
+  gap:12px 
+} 
+
+/* ===== カラーピッカー ===== */ 
+
+.colors{ 
+  display:grid; 
+  grid-template-columns:130px minmax(0,1fr); 
+  gap:8px; 
+  align-items:center 
+} 
+
+.picker{ 
+  width:130px; 
+  height:130px; 
+  position:relative; 
+  display:grid; 
+  place-items:center 
+} 
+
+.ring{ 
+  position:absolute; 
+  inset:0; 
+  border-radius:50%; 
+  background: 
+    conic-gradient( 
+      red, 
+      yellow, 
+      lime, 
+      cyan, 
+      blue, 
+      magenta, 
+      red 
+    ); 
+  -webkit-mask: 
+    radial-gradient( 
+      farthest-side, 
+      transparent calc(100% - 18px), 
+      #000 calc(100% - 17px) 
+    ); 
+  mask: 
+    radial-gradient( 
+      farthest-side, 
+      transparent calc(100% - 18px), 
+      #000 calc(100% - 17px) 
+    ) 
+} 
+
+.sv{ 
+  width:82px; 
+  height:82px; 
+  border-radius:3px; 
+  position:relative; 
+  overflow:hidden; 
+  background: 
+    linear-gradient(to bottom,transparent,#000), 
+    linear-gradient( 
+      to right, 
+      #fff, 
+      hsl(var(--h),100%,50%) 
+    ); 
+  box-shadow:0 0 0 1.5px #222 
+} 
+
+.mark{ 
+  position:absolute; 
+  width:14px; 
+  height:14px; 
+  border:2px solid #fff; 
+  border-radius:50%; 
+  box-shadow:0 0 0 1px #111; 
+  transform:translate(-50%,-50%); 
+  pointer-events:none 
+} 
+
+/* ===== 色情報 ===== */ 
+
+.side{ 
+  display:flex; 
+  flex-direction:column; 
+  gap:9px 
+} 
+
+.current{ 
+  display:flex; 
+  align-items:center; 
+  gap:8px 
+} 
+
+.preview{ 
+  width:38px; 
+  height:38px; 
+  border:1.5px solid #222; 
+  border-radius:7px 
+} 
+
+.hexrow{ 
+  display:flex; 
+  gap:6px 
+} 
+
+.hex{ 
+  min-width:0; 
+  flex:1; 
+  border:1.5px solid #222; 
+  border-radius:8px; 
+  padding:9px 10px; 
+  text-transform:uppercase 
+} 
+
+.plus{ 
+  width:40px; 
+  height:40px; 
+  border:1.5px solid #222; 
+  border-radius:50%; 
+  background:#fff; 
+  font-size:22px 
+} 
+
+.status{ 
+  font-size:12px; 
+  color:#666; 
+  background:#f7f7f7; 
+  border-radius:7px; 
+  padding:7px 
+} 
+
+/* ===== パレット ===== */ 
+
+.palette{ 
+  display:grid; 
+  grid-template-columns:repeat(10,1fr); 
+  gap:4px; 
+  border:1.5px solid #222; 
+  border-radius:8px; 
+  padding:6px; 
+  background:#fafafa 
+} 
+
+.swatch{ 
+  aspect-ratio:1; 
+  border:1px solid #888; 
+  border-radius:3px; 
+  padding:0; 
+  background: 
+    repeating-conic-gradient( 
+      #ddd 0 25%, 
+      #fff 0 50% 
+    ) 50%/10px 10px; 
+  position:relative 
+} 
+
+.swatch i{ 
+  position:absolute; 
+  inset:0 
+} 
+
+.swatch.sel{ 
+  outline:2px solid #111; 
+  outline-offset:1px 
+} 
+
+.danger{ 
+  border-color:#a33; 
+  color:#8a2222 
+} 
+
+/* ===== モーダル ===== */ 
+
+.modalbg{ 
+  position:fixed; 
+  inset:0; 
+  background:#0007; 
+  display:none; 
+  align-items:center; 
+  justify-content:center; 
+  padding:20px; 
+  z-index:10 
+} 
+
+.modalbg.show{ 
+  display:flex 
+} 
+
+.modal{ 
+  width:min(420px,100%); 
+  background:#fff; 
+  border:1.5px solid #222; 
+  border-radius:13px; 
+  padding:20px 
+} 
+
+.modal h2{ 
+  font-size:18px; 
+  margin:0 0 10px 
+} 
+
+.modal p{ 
+  font-size:14px; 
+  line-height:1.6 
+} 
+
+.modal-actions{ 
+  text-align:right 
+} 
+
+.modal-actions button{ 
+  padding:8px 14px; 
+  border:1.5px solid #222; 
+  border-radius:8px; 
+  background:#fff; 
+  margin-left:6px 
+} 
+
+.modal-actions .ok{ 
+  background:#111; 
+  color:#fff 
+} 
+
+/* ===== タブレット ===== */ 
+
+@media(max-width:900px){ 
+
+  :root{ 
+    --canvas:min(76vw,520px) 
+  } 
+
+  .layout{ 
+    transform:none; 
+    width:100%; 
+    grid-template-columns:1fr 
+  } 
+
+  .controls{ 
+    order:2 
+  } 
+} 
+
+/* ===== スマートフォン ===== */ 
+
+@media(max-width:560px){ 
+
+  .app{ 
+    padding:9px 
+  } 
+
+  :root{ 
+    --canvas:min(88vw,480px) 
+  } 
+
+  .card{ 
+    padding:10px 
+  } 
+
+  .colors{ 
+    grid-template-columns:1fr 
+  } 
+
+  .picker{ 
+    margin:auto 
+  } 
+
+  .tool{ 
+    min-height:57px 
+  } 
+
+  .tool span:first-child{ 
+    font-size:18px 
+  } 
+}
+
+/* ===== マンボウ用スマホ調整 ===== */
+@media(max-width:560px){
+  .top{
+    padding:0 14px
+  }
+  .brand-area{
+    gap:7px
+  }
+  .brand-logo{
+    width:38px;
+    height:38px
+  }
+  .brand{
+    font-size:13px
+  }
+  .actions{
+    gap:5px
+  }
+  .btn{
+    padding:7px 9px
+  }
+  .icon{
+    width:38px;
+    height:38px
+  }
+}
+
+
+/* ===== チェキ風プレビュー ===== */
+.cheki-modal{
+  width:min(760px,100%);
+  max-height:calc(100vh - 32px);
+  overflow:auto;
+  background:#fff;
+  border:1.5px solid #222;
+  border-radius:15px;
+  padding:18px
+}
+.cheki-layout{
+  display:grid;
+  grid-template-columns:minmax(280px,1fr) 260px;
+  gap:18px;
+  align-items:start
+}
+.cheki-preview-wrap{
+  display:grid;
+  place-items:center;
+  background:#eee;
+  border-radius:10px;
+  padding:14px
+}
+#chekiPreview{
+  width:min(100%,420px);
+  height:auto;
+  display:block;
+  image-rendering:pixelated;
+  background:#fff
+}
+.cheki-side{
+  display:flex;
+  flex-direction:column;
+  gap:12px
+}
+.cheki-side h2{
+  font-size:18px;
+  margin:0
+}
+.cheki-note{
+  font-size:12px;
+  color:#666;
+  line-height:1.6;
+  margin:0
+}
+.used-colors{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(62px,1fr));
+  gap:8px;
+  max-height:230px;
+  overflow:auto;
+  padding:4px 2px
+}
+.used-color-choice{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:5px;
+  min-width:0;
+  padding:6px 4px;
+  border:1.5px solid #bbb;
+  border-radius:8px;
+  background:#fff;
+  cursor:pointer
+}
+.used-color-choice:hover{border-color:#555}
+.used-color-choice.selected{border-color:#111;box-shadow:0 0 0 2px #111 inset}
+.used-color-choice input{
+  position:absolute;
+  left:6px;
+  top:6px;
+  width:24px;
+  height:24px;
+  margin:0;
+  accent-color:#111;
+  cursor:pointer
+}
+.used-color-swatch{
+  width:42px;
+  height:42px;
+  border:1.5px solid #555;
+  border-radius:5px;
+  margin-top:3px
+}
+.used-color-label{
+  font-size:11px;
+  font-weight:700;
+  line-height:1.2;
+  word-break:break-all;
+  text-align:center
+}
+.cheki-actions{
+  display:flex;
+  gap:7px;
+  justify-content:flex-end;
+  flex-wrap:wrap
+}
+.cheki-actions button{
+  padding:8px 12px;
+  border:1.5px solid #222;
+  border-radius:8px;
+  background:#fff
+}
+.cheki-actions .ok{
+  background:#111;
+  color:#fff
+}
+.cheki-help{
+  font-size:12px;
+  color:#777;
+  margin:0
+}
+@media(max-width:700px){
+  .cheki-layout{
+    grid-template-columns:1fr
+  }
+  .cheki-side{
+    order:2
+  }
+}
+
+
+.save-modal{width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;background:#fff;border:1.5px solid #222;border-radius:15px;padding:20px}
+.save-modal h2{margin:0 0 14px;font-size:19px}
+.save-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.save-option{padding:11px;border:1.5px solid #222;border-radius:9px;background:#fff;font-weight:700;cursor:pointer}
+.save-option.active{background:#111;color:#fff}
+.save-cheki-settings{margin-top:16px;display:none}
+.save-cheki-settings.show{display:block}
+.cheki-date{width:100%;padding:10px 12px;border:1.5px solid #222;border-radius:8px;background:#fff}
+.cheki-date-help{font-size:12px;color:#777;margin:5px 0 14px}
+.save-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.save-modal-actions button{padding:9px 14px;border:1.5px solid #222;border-radius:8px;background:#fff}
+.save-modal-actions .ok{background:#111;color:#fff}
+
+
+
+.save-modal{width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;background:#fff;border:1.5px solid #222;border-radius:15px;padding:20px}
+.save-modal h2{margin:0 0 14px;font-size:19px}
+.save-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.save-option{padding:11px;border:1.5px solid #222;border-radius:9px;background:#fff;font-weight:700;cursor:pointer}
+.save-option.active{background:#111;color:#fff}
+.save-cheki-settings{margin-top:16px;display:none}
+.save-cheki-settings.show{display:block}
+.cheki-date{width:100%;padding:10px 12px;border:1.5px solid #222;border-radius:8px;background:#fff}
+.cheki-date-help{font-size:12px;color:#777;margin:5px 0 14px}
+.save-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.save-modal-actions button{padding:9px 14px;border:1.5px solid #222;border-radius:8px;background:#fff}
+.save-modal-actions .ok{background:#111;color:#fff}
+
+
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top"><div class="brand-area"><img class="brand-logo" src="IMG_2852.png" alt="マンボウ"><div class="brand">PIXEL ART EDITOR</div></div><div class="actions"><button class="btn icon" id="reload" title="サイト内の更新">↻</button><button class="btn" id="save">保存</button></div></header>
+<main class="layout">
+<section class="card">
+<div class="stage-wrap"><div class="stage"><canvas id="canvas"></canvas><svg id="grid"></svg></div></div>
+<div class="sizes" id="sizes"><button class="size active" data-size="16">16×16</button><button class="size" data-size="32">32×32</button><button class="size" data-size="48">48×48</button></div>
+<p class="hint">キャンバスをドラッグして描画できます</p>
+</section>
+<aside class="card controls">
+<section><div class="title">ツール</div><div class="tools" id="tools">
+<button class="tool active" data-tool="pen"><span>✎</span>ペン</button><button class="tool" data-tool="eraser"><span>⌫</span>消しゴム</button><button class="tool" data-tool="eyedropper"><span>⌁</span>スポイト</button><button class="tool" data-tool="fill"><span>▰</span>塗りつぶし</button><button class="tool active" data-tool="grid"><span>▦</span>グリッド ON</button>
+</div></section>
+<section><div class="title">カラー</div><div class="colors"><div class="picker"><div class="ring" id="ring"></div><div class="sv" id="sv"><i class="mark" id="svmark"></i></div><i class="mark" id="humark"></i></div><div class="side"><div class="current"><i class="preview" id="preview"></i><b id="label">#ACDA95</b></div><div class="hexrow"><input class="hex" id="hex" value="#ACDA95" maxlength="7"><button class="plus" id="add">+</button></div><div class="status" id="status">ペンモード</div></div></div></section>
+<section><div class="title">保存パレット（最大50色）</div><div class="palette" id="palette"></div></section>
+<button class="btn danger" id="clear2">パレット全消去</button>
+</aside>
+</main>
+</div>
+
+<div class="modalbg" id="saveModal">
+  <div class="save-modal">
+    <h2>保存形式を選択</h2>
+    <div class="save-options">
+      <button class="save-option active" data-save-type="normal">通常PNG</button>
+      <button class="save-option" data-save-type="cheki">チェキ風PNG</button>
+    </div>
+    <div class="save-cheki-settings" id="saveChekiSettings">
+      <div class="title">日付を入力</div>
+      <input class="cheki-date" id="chekiDate" type="date" aria-label="チェキに表示する日付">
+      <p class="cheki-date-help">日付はチェキ風画像に表示されます。</p>
+      <div class="title">使用色から最大5色を選択</div>
+      <div class="used-colors" id="saveUsedColors"></div>
+      <p class="cheki-help" id="saveColorStatus">選択：0 / 5色</p>
+    </div>
+    <div class="save-modal-actions">
+      <button id="saveCancel">キャンセル</button>
+      <button class="ok" id="saveExecute">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="modalbg" id="chekiModal">
+  <div class="cheki-modal">
+    <div class="cheki-layout">
+      <div class="cheki-preview-wrap">
+        <canvas id="chekiPreview" width="600" height="800"></canvas>
+      </div>
+      <div class="cheki-side">
+        <h2>チェキ風プレビュー</h2>
+        <p class="cheki-note">保存前にチェキ風の仕上がりを確認できます。</p>
+        <div class="cheki-actions">
+          <button id="chekiClose">プレビューを閉じる</button>
+          <button class="ok" id="chekiSave">チェキ風PNGを保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modalbg" id="modal"><div class="modal"><h2 id="mtitle">確認</h2><p id="mtext"></p><div class="modal-actions"><button id="cancel">いいえ</button><button class="ok" id="ok">はい</button></div></div></div>
+
+<script>
+(()=>{"use strict";
+const MAX=50,SIZES=[16,32,48],s={size:16,tool:"pen",grid:true,color:"#ACDA95",h:0,sat:.38,val:.85,palette:Array(MAX).fill(null),drawing:false,last:null,chekiColors:[],chekiDate:""};
+const $=id=>document.getElementById(id),c=$("canvas"),x=c.getContext("2d",{alpha:true}),g=$("grid"),stage=document.querySelector(".stage");
+function log(a,b=""){console.log("[PixelArt] "+a+(b?" — "+b:""))}
+function rgbhex(r,g,b){return"#"+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,"0")).join("").toUpperCase()}
+function hsvrgb(h,S,v){let i=Math.floor(h*6),f=h*6-i,p=v*(1-S),q=v*(1-f*S),t=v*(1-(1-f)*S);return[[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i%6].map(z=>Math.round(z*255))}
+function hexrgb(h){h=h.replace("#","");if(!/^[0-9a-f]{6}$/i.test(h))return null;return[0,2,4].map(i=>parseInt(h.slice(i,i+2),16))}
+function rgbhsv(r,g,b){r/=255;g/=255;b/=255;let M=Math.max(r,g,b),m=Math.min(r,g,b),d=M-m,h=0;if(d){if(M==r)h=((g-b)/d)%6;else if(M==g)h=(b-r)/d+2;else h=(r-g)/d+4;h/=6;if(h<0)h+=1}return{h,s:d?(d/M):0,v:M}}
+function setColor(hex,why=""){let q=hexrgb(hex);if(!q)return false;let z=rgbhsv(...q);s.color=rgbhex(...q);s.h=z.h;s.sat=z.s;s.val=z.v;uiColor();if(why)log("色変更",s.color+" ("+why+")");return true}
+function uiColor(){ $("hex").value=s.color;$("label").textContent=s.color;$("preview").style.background=s.color;$("sv").style.setProperty("--h",s.h*360);let a=s.h*Math.PI*2-Math.PI/2;$("humark").style.left=(50+Math.cos(a)*50)+"%";$("humark").style.top=(50+Math.sin(a)*50)+"%";$("svmark").style.left=s.sat*100+"%";$("svmark").style.top=(1-s.val)*100+"%";renderPalette()}
+function grid(){g.innerHTML="";let n=s.size;g.setAttribute("viewBox","0 0 "+n+" "+n);g.style.display=s.grid?"block":"none";for(let i=0;i<=n;i++){for(let q=0;q<2;q++){let l=document.createElementNS("http://www.w3.org/2000/svg","line");if(q){l.setAttribute("x1",0);l.setAttribute("x2",n);l.setAttribute("y1",i);l.setAttribute("y2",i)}else{l.setAttribute("x1",i);l.setAttribute("x2",i);l.setAttribute("y1",0);l.setAttribute("y2",n)}l.setAttribute("stroke","rgba(0,0,0,.20)");l.setAttribute("stroke-width",".08");l.setAttribute("shape-rendering","crispEdges");g.appendChild(l)}}}
+function init(n=s.size){s.size=n;c.width=c.height=n;x.imageSmoothingEnabled=false;x.clearRect(0,0,n,n);grid();document.querySelectorAll(".size").forEach(b=>b.classList.toggle("active",+b.dataset.size===n));log("キャンバス初期化",n+"×"+n)}
+function tool(t){if(t==="grid"){s.grid=!s.grid;grid();document.querySelector('[data-tool="grid"]').innerHTML="<span>▦</span>グリッド "+(s.grid?"ON":"OFF");log("グリッド",s.grid?"ON":"OFF");return}s.tool=t;document.querySelectorAll(".tool").forEach(b=>{if(b.dataset.tool!=="grid")b.classList.toggle("active",b.dataset.tool===t)});$("status").textContent={pen:"ペンモード",eraser:"消しゴムモード",eyedropper:"スポイトモード",fill:"塗りつぶしモード"}[t];log("ツール変更",t)}
+function pix(e){let r=c.getBoundingClientRect(),X=Math.floor((e.clientX-r.left)/r.width*s.size),Y=Math.floor((e.clientY-r.top)/r.height*s.size);return X>=0&&Y>=0&&X<s.size&&Y<s.size?{x:X,y:Y}:null}
+function paint(p){if(s.tool==="eraser")x.clearRect(p.x,p.y,1,1);else x.fillStyle=s.color,x.fillRect(p.x,p.y,1,1)}
+function line(a,b){let X=a.x,Y=a.y,A=b.x,B=b.y,dx=Math.abs(A-X),sx=X<A?1:-1,dy=-Math.abs(B-Y),sy=Y<B?1:-1,e=dx+dy;for(;;){paint({x:X,y:Y});if(X===A&&Y===B)break;let e2=2*e;if(e2>=dy)e+=dy,X+=sx;if(e2<=dx)e+=dx,Y+=sy}}
+function pixel(X,Y){let d=x.getImageData(X,Y,1,1).data;return d}
+function eyedrop(p){let d=pixel(p.x,p.y);if(d[3]){setColor(rgbhex(d[0],d[1],d[2]),"スポイト");tool("pen")}}
+function fill(X,Y){let n=s.size,D=x.getImageData(0,0,n,n),d=D.data,t=pixel(X,Y),q=hexrgb(s.color);if(t[3]===255&&t[0]===q[0]&&t[1]===q[1]&&t[2]===q[2])return;let st=[[X,Y]],seen=new Uint8Array(n*n);function same(a,b){let i=(b*n+a)*4;return d[i]===t[0]&&d[i+1]===t[1]&&d[i+2]===t[2]&&d[i+3]===t[3]}while(st.length){let [a,b]=st.pop();if(a<0||b<0||a>=n||b>=n)continue;let k=b*n+a;if(seen[k]||!same(a,b))continue;seen[k]=1;let i=k*4;d[i]=q[0];d[i+1]=q[1];d[i+2]=q[2];d[i+3]=255;st.push([a+1,b],[a-1,b],[a,b+1],[a,b-1])}x.putImageData(D,0,0);log("塗りつぶし",X+","+Y)}
+c.addEventListener("pointerdown",e=>{e.preventDefault();let p=pix(e);if(!p)return;if(s.tool==="eyedropper")return eyedrop(p);if(s.tool==="fill")return fill(p.x,p.y);if(s.tool==="grid")return;s.drawing=true;s.last=p;c.setPointerCapture?.(e.pointerId);paint(p)});
+c.addEventListener("pointermove",e=>{if(!s.drawing)return;let p=pix(e);if(p&&s.last)line(s.last,p),s.last=p});
+function up(){s.drawing=false;s.last=null}c.addEventListener("pointerup",up);c.addEventListener("pointercancel",up);
+function confirm(title,text,fn){$("mtitle").textContent=title;$("mtext").textContent=text;$("modal").classList.add("show");$("ok").onclick=()=>{$("modal").classList.remove("show");fn()};$("cancel").onclick=()=>$("modal").classList.remove("show")}
+function clear(){x.clearRect(0,0,s.size,s.size);log("全消去",s.size+"×"+s.size);$("status").textContent="キャンバスを全消去しました"}
+function palette(){let p=$("palette");p.innerHTML="";s.palette.forEach((v,i)=>{let b=document.createElement("button");b.className="swatch"+(v===s.color?" sel":"");if(v){let z=document.createElement("i");z.style.background=v;b.appendChild(z);b.onclick=()=>setColor(v,"保存パレット")}p.appendChild(b)})}
+$("tools").onclick=e=>{let b=e.target.closest(".tool");if(b)tool(b.dataset.tool)};$("sizes").onclick=e=>{let b=e.target.closest(".size");if(b&&+b.dataset.size!==s.size)confirm("キャンバスサイズを変更","サイズを"+b.dataset.size+"×"+b.dataset.size+"に変更すると現在の作品は消去されます。実行しますか？",()=>init(+b.dataset.size))};
+$("save").onclick=()=>{
+  try{
+    // 描画用キャンバスを、そのままPNGとして保存する。
+    // gridは別レイヤーなので、保存画像には含めない。
+    const a=document.createElement("a");
+    const filename=`pixel_art_${s.size}x${s.size}.png`;
+    a.download=filename;
+    a.href=c.toDataURL("image/png");
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    $("status").textContent="PNG画像を保存しました";
+    log("保存",filename);
+  }catch(err){
+    console.error("[保存] PNG保存に失敗しました",err);
+    $("status").textContent="保存に失敗しました";
+    log("保存エラー",err.message||String(err));
+  }
+};
+$("clear2").onclick=()=>confirm("保存パレットを全消去","保存パレットに登録されている色をすべて消去します。実行しますか？",()=>{
+  s.palette=Array(MAX).fill(null);
+  palette();
+  $("status").textContent="保存パレットを全消去しました";
+  log("パレット全消去", "50枠を初期化");
+});
+$("reload").onclick=()=>confirm("最初の状態に戻す","現在の作品を消去して16×16に戻します。実行しますか？",()=>{s.tool="pen";s.grid=true;document.querySelectorAll(".tool").forEach(b=>b.classList.toggle("active",b.dataset.tool==="pen"||b.dataset.tool==="grid"));init(16);setColor("#ACDA95","初期化");$("status").textContent="ペンモード";log("内部更新","初期状態")});
+$("add").onclick=()=>{let i=s.palette.indexOf(null);if(s.palette.includes(s.color))return $("status").textContent="その色はすでに保存されています";if(i<0)return $("status").textContent="保存パレットが満タンです（50色）";s.palette[i]=s.color;palette();log("パレット追加",s.color)};
+$("hex").onchange=()=>{let v=$("hex").value.trim().toUpperCase();if(!v.startsWith("#"))v="#"+v;if(!setColor(v,"HEX入力"))$("status").textContent="HEXは #RRGGBB で入力してください"};
+let pd=null;function picker(e,m){e.preventDefault();pd=m;move(e)}function move(e){if(!pd)return;let r=$(pd==="h"?"ring":"sv").getBoundingClientRect();if(pd==="h"){let dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2,h=Math.atan2(dy,dx)+Math.PI/2;if(h<0)h+=Math.PI*2;s.h=h/(Math.PI*2)}else{s.sat=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));s.val=1-Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))}s.color=rgbhex(...hsvrgb(s.h,s.sat,s.val));uiColor()}function pend(){if(pd)log("カラーピッカー変更",s.color);pd=null}
+$("ring").onpointerdown=e=>picker(e,"h");$("sv").onpointerdown=e=>picker(e,"sv");addEventListener("pointermove",move);addEventListener("pointerup",pend);
+
+/* ===== チェキ風機能 ===== */
+function getUsedColors(){
+  const d=x.getImageData(0,0,s.size,s.size).data,colors=[],seen=new Set();
+  for(let i=0;i<d.length;i+=4){
+    if(d[i+3]===0)continue;
+    const h=rgbhex(d[i],d[i+1],d[i+2]);
+    if(!seen.has(h)){seen.add(h);colors.push(h)}
+  }
+  return colors
+}
+
+const qrImage = new Image();
+
+qrImage.onload = () => {
+  ctx.drawImage(qrImage, 500, 650, 75, 75);
+};
+
+qrImage.onerror = () => {
+  console.error("[チェキ風] qr.png の読み込みに失敗しました");
+};
+
+qrImage.src = "qr.png";
+
+function drawCheki(){
+  const pc=$("chekiPreview");
+  const ctx=pc.getContext("2d");
+  ctx.imageSmoothingEnabled=false;
+  ctx.clearRect(0,0,pc.width,pc.height);
+  ctx.fillStyle="#fdfdfd";
+  ctx.fillRect(0,0,600,800);
+  ctx.strokeStyle="#222";
+  ctx.lineWidth=2;
+  ctx.strokeRect(1,1,598,798);
+
+  // 元キャンバスを一度オフスクリーンへコピーしてから描画することで、
+  // キャンバスサイズや表示倍率に左右されず作品を確実に反映する。
+  const source=document.createElement("canvas");
+  source.width=c.width;
+  source.height=c.height;
+  const sx=source.getContext("2d");
+  sx.imageSmoothingEnabled=false;
+  sx.clearRect(0,0,source.width,source.height);
+  sx.drawImage(c,0,0);
+
+  ctx.fillStyle="#eee";
+  ctx.fillRect(40,40,520,520);
+  ctx.drawImage(source,0,0,source.width,source.height,40,40,520,520);
+
+  ctx.fillStyle="#111";
+  ctx.font="bold 25px system-ui,sans-serif";
+  ctx.fillText("PIXEL ART",40,615);
+  ctx.font="18px system-ui,sans-serif";
+  ctx.fillText(`${s.size} × ${s.size}`,40,648);
+  if(s.chekiDate){
+    const dateText=s.chekiDate.replace(/-/g,"/");
+    ctx.font="18px system-ui,sans-serif";
+    ctx.fillText(dateText,150,648);
+  }
+
+  ctx.font="bold 15px system-ui,sans-serif";
+  ctx.fillText("COLORS",40,690);
+  s.chekiColors.slice(0,5).forEach((col,i)=>{
+    const xx=110+i*70;
+    ctx.fillStyle=col;
+    ctx.fillRect(xx,665,34,34);
+    ctx.strokeStyle="#222";
+    ctx.lineWidth=1;
+    ctx.strokeRect(xx,665,34,34);
+    ctx.fillStyle="#111";
+    ctx.font="10px system-ui,sans-serif";
+    ctx.fillText(col.toUpperCase(),xx-6,716);
+  });
+
+  dummyQR(ctx,500,650,75);
+}
+function renderUsedColors(targetId="usedColors",statusId="chekiColorStatus"){
+  const box=$(targetId),colors=getUsedColors();
+  if(!box)return;
+  box.innerHTML="";
+  s.chekiColors=s.chekiColors.filter(v=>colors.includes(v)).slice(0,5);
+  if(!colors.length){
+    box.innerHTML='<div style="font-size:12px;color:#777;grid-column:1/-1">作品に使用されている色はありません</div>';
+  }
+  colors.forEach(col=>{
+    const label=document.createElement("label");
+    label.className="used-color-choice"+(s.chekiColors.includes(col)?" selected":"");
+    const input=document.createElement("input");
+    input.type="checkbox";
+    input.checked=s.chekiColors.includes(col);
+    input.setAttribute("aria-label",col.toUpperCase());
+    const swatch=document.createElement("span");
+    swatch.className="used-color-swatch";
+    swatch.style.background=col;
+    const code=document.createElement("span");
+    code.className="used-color-label";
+    code.textContent=col.toUpperCase();
+    input.onchange=()=>{
+      const idx=s.chekiColors.indexOf(col);
+      if(input.checked){
+        if(s.chekiColors.length>=5){
+          input.checked=false;
+          if($(statusId))$(statusId).textContent="最大5色まで選択できます";
+          return;
+        }
+        s.chekiColors.push(col);
+      }else if(idx>=0){
+        s.chekiColors.splice(idx,1);
+      }
+      renderUsedColors(targetId,statusId);
+      drawCheki();
+    };
+    label.appendChild(input);
+    label.appendChild(swatch);
+    label.appendChild(code);
+    box.appendChild(label);
+  });
+  if($(statusId))$(statusId).textContent=`選択：${s.chekiColors.length} / 5色`;
+}
+$("save").onclick=()=>{
+  s.chekiColors=getUsedColors().slice(0,5);
+  const dateInput=$("chekiDate");
+  if(dateInput)dateInput.value=s.chekiDate||"";
+  renderUsedColors("saveUsedColors","saveColorStatus");
+  $("saveModal").classList.add("show");
+};
+document.querySelectorAll(".save-option").forEach(btn=>btn.onclick=()=>{
+  document.querySelectorAll(".save-option").forEach(x=>x.classList.remove("active"));
+  btn.classList.add("active");
+  $("saveChekiSettings").classList.toggle("show",btn.dataset.saveType==="cheki");
+});
+$("saveCancel").onclick=()=>$("saveModal").classList.remove("show");
+$("saveExecute").onclick=()=>{
+  const type=document.querySelector(".save-option.active").dataset.saveType;
+  if(type==="normal"){
+    const out=document.createElement("canvas"),o=out.getContext("2d"); out.width=384;out.height=384;o.imageSmoothingEnabled=false;o.drawImage(c,0,0,384,384);
+    const a=document.createElement("a");a.download=`pixel_art_${s.size}x${s.size}.png`;a.href=out.toDataURL("image/png");a.click();
+    $("status").textContent="通常PNGを保存しました";log("通常保存",a.download);
+    $("saveModal").classList.remove("show");
+  }else{
+    const dateInput=$("chekiDate");
+    if(!dateInput || !dateInput.value){
+      $("status").textContent="チェキ風保存には日付の入力が必要です";
+      dateInput?.focus();
+      return;
+    }
+    s.chekiDate=dateInput.value;
+    drawCheki(); $("saveModal").classList.remove("show"); $("chekiModal").classList.add("show");
+    log("チェキ風プレビュー","表示");
+  }
+};
+
+$("chekiClose").onclick=()=>{
+  $("chekiModal").classList.remove("show");
+  log("チェキ風プレビュー","閉じる")
+};
+$("chekiSave").onclick=()=>{
+  try{
+    const a=document.createElement("a");
+    const filename=`pixel_art_${s.size}x${s.size}_cheki.png`;
+    a.download=filename;
+    a.href=$("chekiPreview").toDataURL("image/png");
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    $("status").textContent="チェキ風PNGを保存しました";
+    log("チェキ風保存",filename)
+  }catch(err){
+    console.error("[チェキ風保存] 失敗しました",err);
+    $("status").textContent="チェキ風保存に失敗しました";
+    log("チェキ風保存エラー",err.message||String(err))
+  }
+};
+$("chekiModal").addEventListener("click",e=>{
+  if(e.target===$("chekiModal"))$("chekiModal").classList.remove("show")
+});
+$("saveModal").addEventListener("click",e=>{
+  if(e.target===$("saveModal"))$("saveModal").classList.remove("show")
+});
+
+init(16);setColor("#ACDA95");palette();log("起動","描画版");
+})();
+</script>
+</body>
+</html>
