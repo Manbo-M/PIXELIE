@@ -822,17 +822,7 @@ function getUsedColors(){
   return colors
 }
 
-const qrImage = new Image();
 
-qrImage.onload = () => {
-  ctx.drawImage(qrImage, 500, 650, 75, 75);
-};
-
-qrImage.onerror = () => {
-  console.error("[チェキ風] qr.png の読み込みに失敗しました");
-};
-
-qrImage.src = "qr.png";
 
 function drawCheki(){
   const pc=$("chekiPreview");
@@ -884,7 +874,17 @@ function drawCheki(){
     ctx.fillText(col.toUpperCase(),xx-6,716);
   });
 
-  dummyQR(ctx,500,650,75);
+  const qrImage = new Image();
+
+qrImage.onload = () => {
+  ctx.drawImage(qrImage, 500, 650, 75, 75);
+};
+
+qrImage.onerror = () => {
+  console.error("[チェキ風] qr.png の読み込みに失敗しました");
+};
+
+qrImage.src = "qr.png";
 }
 function renderUsedColors(targetId="usedColors",statusId="chekiColorStatus"){
   const box=$(targetId),colors=getUsedColors();
