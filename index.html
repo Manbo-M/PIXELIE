@@ -532,7 +532,7 @@ button{
     height:38px
   }
   .brand{
-    font-size:13px
+    font-size:24px
   }
   .actions{
     gap:5px
@@ -772,7 +772,7 @@ function hsvrgb(h,S,v){let i=Math.floor(h*6),f=h*6-i,p=v*(1-S),q=v*(1-f*S),t=v*(
 function hexrgb(h){h=h.replace("#","");if(!/^[0-9a-f]{6}$/i.test(h))return null;return[0,2,4].map(i=>parseInt(h.slice(i,i+2),16))}
 function rgbhsv(r,g,b){r/=255;g/=255;b/=255;let M=Math.max(r,g,b),m=Math.min(r,g,b),d=M-m,h=0;if(d){if(M==r)h=((g-b)/d)%6;else if(M==g)h=(b-r)/d+2;else h=(r-g)/d+4;h/=6;if(h<0)h+=1}return{h,s:d?(d/M):0,v:M}}
 function setColor(hex,why=""){let q=hexrgb(hex);if(!q)return false;let z=rgbhsv(...q);s.color=rgbhex(...q);s.h=z.h;s.sat=z.s;s.val=z.v;uiColor();if(why)log("色変更",s.color+" ("+why+")");return true}
-function uiColor(){ $("hex").value=s.color;$("label").textContent=s.color;$("preview").style.background=s.color;$("sv").style.setProperty("--h",s.h*360);let a=s.h*Math.PI*2-Math.PI/2;$("humark").style.left=(50+Math.cos(a)*50)+"%";$("humark").style.top=(50+Math.sin(a)*50)+"%";$("svmark").style.left=s.sat*100+"%";$("svmark").style.top=(1-s.val)*100+"%";renderPalette()}
+function uiColor(){ $("hex").value=s.color;$("label").textContent=s.color;$("preview").style.background=s.color;$("sv").style.setProperty("--h",s.h*360);let a=s.h*Math.PI*2-Math.PI/2;$("humark").style.left=(50+Math.cos(a)*50)+"%";$("humark").style.top=(50+Math.sin(a)*50)+"%";$("svmark").style.left=s.sat*100+"%";$("svmark").style.top=(1-s.val)*100+"%";palette()}
 function grid(){g.innerHTML="";let n=s.size;g.setAttribute("viewBox","0 0 "+n+" "+n);g.style.display=s.grid?"block":"none";for(let i=0;i<=n;i++){for(let q=0;q<2;q++){let l=document.createElementNS("http://www.w3.org/2000/svg","line");if(q){l.setAttribute("x1",0);l.setAttribute("x2",n);l.setAttribute("y1",i);l.setAttribute("y2",i)}else{l.setAttribute("x1",i);l.setAttribute("x2",i);l.setAttribute("y1",0);l.setAttribute("y2",n)}l.setAttribute("stroke","rgba(0,0,0,.20)");l.setAttribute("stroke-width",".08");l.setAttribute("shape-rendering","crispEdges");g.appendChild(l)}}}
 function init(n=s.size){s.size=n;c.width=c.height=n;x.imageSmoothingEnabled=false;x.clearRect(0,0,n,n);grid();document.querySelectorAll(".size").forEach(b=>b.classList.toggle("active",+b.dataset.size===n));log("キャンバス初期化",n+"×"+n)}
 function tool(t){if(t==="grid"){s.grid=!s.grid;grid();document.querySelector('[data-tool="grid"]').innerHTML="<span>▦</span>グリッド "+(s.grid?"ON":"OFF");log("グリッド",s.grid?"ON":"OFF");return}s.tool=t;document.querySelectorAll(".tool").forEach(b=>{if(b.dataset.tool!=="grid")b.classList.toggle("active",b.dataset.tool===t)});$("status").textContent={pen:"ペンモード",eraser:"消しゴムモード",eyedropper:"スポイトモード",fill:"塗りつぶしモード"}[t];log("ツール変更",t)}
