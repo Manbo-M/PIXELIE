@@ -2,9 +2,16 @@
 <html lang="ja">
 <head>
 <link rel="icon" type="image/png" href="IMG_2852.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Pixel Art Editor -Manbo program-</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"
+content="PIXELIEは、ブラウザで簡単にドット絵を作成・保存できる無料・公告なしのピクセルアートエディタです。16x16、32x32、48x48に対応しています。">
+
+<title>PIXELIE | 無料ドット絵・チェキデザイン作成ツール</title>
 <style>
 
 :root{ 
@@ -50,10 +57,12 @@ body{
   border-bottom:1px solid #ddd 
 } 
 
-.brand{ 
-  font-weight:800; 
-  letter-spacing:.08em 
-} 
+.brand{
+  font-family:"Nunito", sans-serif;
+  font-weight:800;
+  font-size:24px;
+  letter-spacing:.08em;
+}
 
 /* ===== マンボウ ===== */
 
@@ -694,7 +703,7 @@ button{
 </head>
 <body>
 <div class="app">
-<header class="top"><div class="brand-area"><img class="brand-logo" src="IMG_2852.png" alt="マンボウ"><div class="brand">PIXEL ART EDITOR</div></div><div class="actions"><button class="btn icon" id="reload" title="サイト内の更新">↻</button><button class="btn" id="save">保存</button></div></header>
+<header class="top"><div class="brand-area"><img class="brand-logo" src="IMG_2852.png" alt="マンボウ"><div class="brand">PIXELIE</div></div><div class="actions"><button class="btn icon" id="reload" title="サイト内の更新">↻</button><button class="btn" id="save">保存</button></div></header>
 <main class="layout">
 <section class="card">
 <div class="stage-wrap"><div class="stage"><canvas id="canvas"></canvas><svg id="grid"></svg></div></div>
