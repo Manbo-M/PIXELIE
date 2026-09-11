@@ -114,7 +114,22 @@ button{
   height:42px; 
   font-size:22px 
 }
-.icon:disabled{opacity:.4;cursor:not-allowed} 
+.icon:disabled{opacity:.4;cursor:not-allowed}
+
+/* ===== 戻る・進む ===== */
+.history-controls{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:6px;
+  margin-top:12px
+}
+.history-controls .icon{
+  width:auto;
+  height:62px;
+  padding:4px 2px;
+  font-size:22px
+}
+
 
 /* ===== メインレイアウト ===== */ 
 
@@ -737,7 +752,7 @@ button{
 <aside class="card controls">
 <section><div class="title">ツール</div><div class="tools" id="tools">
 <button class="tool active" data-tool="pen"><span>✎</span>ペン</button><button class="tool" data-tool="eraser"><span>⌫</span>消しゴム</button><button class="tool" data-tool="eyedropper"><span>⌁</span>スポイト</button><button class="tool" data-tool="fill"><span>▰</span>塗りつぶし</button><button class="tool active" data-tool="grid"><span>▦</span>グリッド ON</button>
-</div><div><button class="btn icon" id="undo" title="一つ戻す">↶</button><button class="btn icon" id="redo" title="一つ進む">↷</button></div>
+</div><div class="history-controls"><button class="btn icon" id="undo" title="一つ戻す">↶</button><button class="btn icon" id="redo" title="一つ進む">↷</button></div>
 </section>
 <section><div class="title">カラー</div><div class="colors"><div class="picker"><div class="ring" id="ring"></div><div class="sv" id="sv"><i class="mark" id="svmark"></i></div><i class="mark" id="humark"></i></div><div class="side"><div class="current"><i class="preview" id="preview"></i><b id="label">#ACDA95</b></div><div class="hexrow"><input class="hex" id="hex" value="#ACDA95" maxlength="7"><button class="plus" id="add">+</button></div><div class="status" id="status">ペンモード</div></div></div></section>
 <section><div class="title">保存パレット（最大50色）</div><div class="palette" id="palette"></div></section>
@@ -1027,10 +1042,11 @@ function getUsedColors(){
 
 
 
-function drawChekiBase(target){
-  const ctx=target.getContext("2d");
+async function drawCheki(){
+  const pc=$("chekiPreview");
+  const ctx=pc.getContext("2d");
   ctx.imageSmoothingEnabled=false;
-  ctx.clearRect(0,0,target.width,target.height);
+  ctx.clearRect(0,0,pc.width,pc.height);
   ctx.fillStyle="#fdfdfd";
   ctx.fillRect(0,0,600,800);
   ctx.strokeStyle="#222";
@@ -1075,55 +1091,30 @@ function drawChekiBase(target){
     ctx.font="10px system-ui,sans-serif";
     ctx.fillText(col.toUpperCase(),xx-6,716);
   });
-}
 
-function loadChekiQR(){
-  return new Promise((resolve,reject)=>{
-    const qrImage=new Image();
-    qrImage.onload=()=>resolve(qrImage);
-    qrImage.onerror=()=>reject(new Error("qr.png の画像読み込みに失敗しました"));
-    qrImage.src="qr.png";
-  });
-}
-
-async function drawCheki(){
-  const pc=$("chekiPreview");
-  const ctx=pc.getContext("2d");
-  drawChekiBase(pc);
+  // qr.png は fetch で取得して Blob URL から読み込む。
+  // 読み込み完了を待ってからCanvasへ描画することで、
+  // QR描画後の toDataURL() が SecurityError になる問題を回避する。
   try{
-    const qrImage=await loadChekiQR();
-    ctx.drawImage(qrImage,500,650,75,75);
+    const response=await fetch("qr.png",{cache:"no-store"});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    const blob=await response.blob();
+    const qrUrl=URL.createObjectURL(blob);
+    try{
+      const qrImage=new Image();
+      await new Promise((resolve,reject)=>{
+        qrImage.onload=resolve;
+        qrImage.onerror=()=>reject(new Error("qr.png の画像読み込みに失敗しました"));
+        qrImage.src=qrUrl;
+      });
+      ctx.drawImage(qrImage,500,650,75,75);
+    }finally{
+      URL.revokeObjectURL(qrUrl);
+    }
   }catch(err){
     console.error("[チェキ風] qr.png の読み込みに失敗しました",err);
   }
 }
-
-async function createChekiExport(){
-  // プレビューがQR画像によってtaintedされていても、
-  // 保存用には必ず新しいクリーンなcanvasを使う。
-  const out=document.createElement("canvas");
-  out.width=600;
-  out.height=800;
-  drawChekiBase(out);
-
-  try{
-    const qrImage=await loadChekiQR();
-    out.getContext("2d").drawImage(qrImage,500,650,75,75);
-
-    // QRを描いた直後に読み出し可能か確認する。
-    // taintedならこのcanvasは破棄し、QRなしで安全に作り直す。
-    out.getContext("2d").getImageData(0,0,1,1);
-  }catch(err){
-    console.warn("[チェキ風保存] QR画像を保存用canvasへ含められないため、QRなしで保存します",err);
-    const clean=document.createElement("canvas");
-    clean.width=600;
-    clean.height=800;
-    drawChekiBase(clean);
-    return clean;
-  }
-  return out;
-}
-
 function renderUsedColors(targetId="usedColors",statusId="chekiColorStatus"){
   const box=$(targetId),colors=getUsedColors();
   if(!box)return;
@@ -1180,7 +1171,7 @@ document.querySelectorAll(".save-option").forEach(btn=>btn.onclick=()=>{
   $("saveChekiSettings").classList.toggle("show",btn.dataset.saveType==="cheki");
 });
 $("saveCancel").onclick=()=>$("saveModal").classList.remove("show");
-$("saveExecute").onclick=()=>{
+$("saveExecute").onclick=async()=>{
   const type=document.querySelector(".save-option.active").dataset.saveType;
   if(type==="normal"){
     const out=document.createElement("canvas"),o=out.getContext("2d"); out.width=384;out.height=384;o.imageSmoothingEnabled=false;o.drawImage(c,0,0,384,384);
@@ -1195,7 +1186,7 @@ $("saveExecute").onclick=()=>{
       return;
     }
     s.chekiDate=dateInput.value;
-    drawCheki(); $("saveModal").classList.remove("show"); $("chekiModal").classList.add("show");
+    await drawCheki(); $("saveModal").classList.remove("show"); $("chekiModal").classList.add("show");
     log("チェキ風プレビュー","表示");
   }
 };
@@ -1204,13 +1195,12 @@ $("chekiClose").onclick=()=>{
   $("chekiModal").classList.remove("show");
   log("チェキ風プレビュー","閉じる")
 };
-$("chekiSave").onclick=async()=>{
+$("chekiSave").onclick=()=>{
   try{
-    const out=await createChekiExport();
     const a=document.createElement("a");
     const filename=`pixel_art_${s.size}x${s.size}_cheki.png`;
     a.download=filename;
-    a.href=out.toDataURL("image/png");
+    a.href=$("chekiPreview").toDataURL("image/png");
     document.body.appendChild(a);
     a.click();
     a.remove();
