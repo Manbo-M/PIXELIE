@@ -113,7 +113,8 @@ button{
   width:42px; 
   height:42px; 
   font-size:22px 
-} 
+}
+.icon:disabled{opacity:.4;cursor:not-allowed} 
 
 /* ===== メインレイアウト ===== */ 
 
@@ -699,6 +700,26 @@ button{
 .save-modal-actions .ok{background:#111;color:#fff}
 
 
+
+
+/* ===== 画像→ドット ===== */
+#imageModal .modal{
+  width:min(480px,100%);
+}
+#imageFile{
+  border:1.5px solid #222;
+  border-radius:8px;
+  padding:8px;
+  background:#fff;
+}
+#imageStatus{
+  min-height:18px;
+}
+@media(max-width:560px){
+  #imageModal .modal{
+    padding:15px;
+  }
+}
 </style>
 </head>
 <body>
@@ -708,12 +729,16 @@ button{
 <section class="card">
 <div class="stage-wrap"><div class="stage"><canvas id="canvas"></canvas><svg id="grid"></svg></div></div>
 <div class="sizes" id="sizes"><button class="size active" data-size="16">16×16</button><button class="size" data-size="32">32×32</button><button class="size" data-size="48">48×48</button></div>
+<div style="display:flex;justify-content:center;margin-top:10px">
+  <button class="btn" id="imageImport">画像をドット化</button>
+</div>
 <p class="hint">キャンバスをドラッグして描画できます</p>
 </section>
 <aside class="card controls">
 <section><div class="title">ツール</div><div class="tools" id="tools">
 <button class="tool active" data-tool="pen"><span>✎</span>ペン</button><button class="tool" data-tool="eraser"><span>⌫</span>消しゴム</button><button class="tool" data-tool="eyedropper"><span>⌁</span>スポイト</button><button class="tool" data-tool="fill"><span>▰</span>塗りつぶし</button><button class="tool active" data-tool="grid"><span>▦</span>グリッド ON</button>
-</div></section>
+</div><div><button class="btn icon" id="undo" title="一つ戻す">↶</button><button class="btn icon" id="redo" title="一つ進む">↷</button></div>
+</section>
 <section><div class="title">カラー</div><div class="colors"><div class="picker"><div class="ring" id="ring"></div><div class="sv" id="sv"><i class="mark" id="svmark"></i></div><i class="mark" id="humark"></i></div><div class="side"><div class="current"><i class="preview" id="preview"></i><b id="label">#ACDA95</b></div><div class="hexrow"><input class="hex" id="hex" value="#ACDA95" maxlength="7"><button class="plus" id="add">+</button></div><div class="status" id="status">ペンモード</div></div></div></section>
 <section><div class="title">保存パレット（最大50色）</div><div class="palette" id="palette"></div></section>
 <button class="btn danger" id="clear2">パレット全消去</button>
@@ -760,11 +785,41 @@ button{
     </div>
   </div>
 </div>
+<div class="modalbg" id="imageModal">
+  <div class="modal">
+    <h2>画像をドット化</h2>
+    <p>画像を選択すると、正方形に自動調整して16×16 / 32×32 / 48×48のドット絵に変換します。</p>
+    <input id="imageFile" type="file" accept="image/*" style="width:100%;margin:8px 0 12px">
+    <div class="title">変換サイズ</div>
+    <div class="sizes" id="imageSizes">
+      <button class="size active" data-image-size="16">16×16</button>
+      <button class="size" data-image-size="32">32×32</button>
+      <button class="size" data-image-size="48">48×48</button>
+    </div>
+    <p id="imageStatus" style="font-size:12px;color:#777;margin:10px 0 0">画像を選択してください。</p>
+    <div class="modal-actions" style="margin-top:14px">
+      <button id="imageCancel">キャンセル</button>
+      <button class="ok" id="imageExecute">ドット化して読み込む</button>
+    </div>
+  </div>
+</div>
 <div class="modalbg" id="modal"><div class="modal"><h2 id="mtitle">確認</h2><p id="mtext"></p><div class="modal-actions"><button id="cancel">いいえ</button><button class="ok" id="ok">はい</button></div></div></div>
 
 <script>
 (()=>{"use strict";
 const MAX=50,SIZES=[16,32,48],s={size:16,tool:"pen",grid:true,color:"#ACDA95",h:0,sat:.38,val:.85,palette:Array(MAX).fill(null),drawing:false,last:null,chekiColors:[],chekiDate:""};
+
+/* ===== Undo / Redo ===== */
+const HISTORY_MAX=5;
+const history=[];
+const future=[];
+function captureState(){return{size:s.size,image:x.getImageData(0,0,s.size,s.size)}}
+function saveHistory(){history.push(captureState());if(history.length>HISTORY_MAX)history.shift();future.length=0;updateHistoryButtons()}
+function restoreHistory(item){if(!item)return;s.size=item.size;c.width=c.height=item.size;x.imageSmoothingEnabled=false;x.clearRect(0,0,item.size,item.size);x.putImageData(item.image,0,0);grid();document.querySelectorAll(".size").forEach(b=>b.classList.toggle("active",+b.dataset.size===item.size));updateHistoryButtons()}
+function undo(){if(!history.length)return;future.push(captureState());restoreHistory(history.pop());$("status").textContent="一つ戻しました";log("一つ戻す")}
+function redo(){if(!future.length)return;history.push(captureState());if(history.length>HISTORY_MAX)history.shift();restoreHistory(future.pop());$("status").textContent="一つ進めました";log("一つ進む")}
+function updateHistoryButtons(){const undoBtn=$("undo"),redoBtn=$("redo");if(undoBtn)undoBtn.disabled=history.length===0;if(redoBtn)redoBtn.disabled=future.length===0}
+
 const $=id=>document.getElementById(id),c=$("canvas"),x=c.getContext("2d",{alpha:true}),g=$("grid"),stage=document.querySelector(".stage");
 function log(a,b=""){console.log("[PixelArt] "+a+(b?" — "+b:""))}
 function rgbhex(r,g,b){return"#"+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,"0")).join("").toUpperCase()}
@@ -772,23 +827,24 @@ function hsvrgb(h,S,v){let i=Math.floor(h*6),f=h*6-i,p=v*(1-S),q=v*(1-f*S),t=v*(
 function hexrgb(h){h=h.replace("#","");if(!/^[0-9a-f]{6}$/i.test(h))return null;return[0,2,4].map(i=>parseInt(h.slice(i,i+2),16))}
 function rgbhsv(r,g,b){r/=255;g/=255;b/=255;let M=Math.max(r,g,b),m=Math.min(r,g,b),d=M-m,h=0;if(d){if(M==r)h=((g-b)/d)%6;else if(M==g)h=(b-r)/d+2;else h=(r-g)/d+4;h/=6;if(h<0)h+=1}return{h,s:d?(d/M):0,v:M}}
 function setColor(hex,why=""){let q=hexrgb(hex);if(!q)return false;let z=rgbhsv(...q);s.color=rgbhex(...q);s.h=z.h;s.sat=z.s;s.val=z.v;uiColor();if(why)log("色変更",s.color+" ("+why+")");return true}
-function uiColor(){ $("hex").value=s.color;$("label").textContent=s.color;$("preview").style.background=s.color;$("sv").style.setProperty("--h",s.h*360);let a=s.h*Math.PI*2-Math.PI/2;$("humark").style.left=(50+Math.cos(a)*50)+"%";$("humark").style.top=(50+Math.sin(a)*50)+"%";$("svmark").style.left=s.sat*100+"%";$("svmark").style.top=(1-s.val)*100+"%";palette()}
+function setTransparent(why=""){s.color="transparent";uiColor();if(why)log("色変更","透明 ("+why+")");return true}
+function uiColor(){const isTransparent=s.color==="transparent";$("hex").value=isTransparent?"透明":s.color;$("label").textContent=isTransparent?"透明":s.color;$("preview").style.background=isTransparent?"repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 50%/10px 10px":s.color;$("sv").style.setProperty("--h",s.h*360);let a=s.h*Math.PI*2-Math.PI/2;$("humark").style.left=(50+Math.cos(a)*50)+"%";$("humark").style.top=(50+Math.sin(a)*50)+"%";$("svmark").style.left=s.sat*100+"%";$("svmark").style.top=(1-s.val)*100+"%";palette()}
 function grid(){g.innerHTML="";let n=s.size;g.setAttribute("viewBox","0 0 "+n+" "+n);g.style.display=s.grid?"block":"none";for(let i=0;i<=n;i++){for(let q=0;q<2;q++){let l=document.createElementNS("http://www.w3.org/2000/svg","line");if(q){l.setAttribute("x1",0);l.setAttribute("x2",n);l.setAttribute("y1",i);l.setAttribute("y2",i)}else{l.setAttribute("x1",i);l.setAttribute("x2",i);l.setAttribute("y1",0);l.setAttribute("y2",n)}l.setAttribute("stroke","rgba(0,0,0,.20)");l.setAttribute("stroke-width",".08");l.setAttribute("shape-rendering","crispEdges");g.appendChild(l)}}}
 function init(n=s.size){s.size=n;c.width=c.height=n;x.imageSmoothingEnabled=false;x.clearRect(0,0,n,n);grid();document.querySelectorAll(".size").forEach(b=>b.classList.toggle("active",+b.dataset.size===n));log("キャンバス初期化",n+"×"+n)}
 function tool(t){if(t==="grid"){s.grid=!s.grid;grid();document.querySelector('[data-tool="grid"]').innerHTML="<span>▦</span>グリッド "+(s.grid?"ON":"OFF");log("グリッド",s.grid?"ON":"OFF");return}s.tool=t;document.querySelectorAll(".tool").forEach(b=>{if(b.dataset.tool!=="grid")b.classList.toggle("active",b.dataset.tool===t)});$("status").textContent={pen:"ペンモード",eraser:"消しゴムモード",eyedropper:"スポイトモード",fill:"塗りつぶしモード"}[t];log("ツール変更",t)}
 function pix(e){let r=c.getBoundingClientRect(),X=Math.floor((e.clientX-r.left)/r.width*s.size),Y=Math.floor((e.clientY-r.top)/r.height*s.size);return X>=0&&Y>=0&&X<s.size&&Y<s.size?{x:X,y:Y}:null}
-function paint(p){if(s.tool==="eraser")x.clearRect(p.x,p.y,1,1);else x.fillStyle=s.color,x.fillRect(p.x,p.y,1,1)}
+function paint(p){if(s.tool==="eraser"||s.color==="transparent")x.clearRect(p.x,p.y,1,1);else x.fillStyle=s.color,x.fillRect(p.x,p.y,1,1)}
 function line(a,b){let X=a.x,Y=a.y,A=b.x,B=b.y,dx=Math.abs(A-X),sx=X<A?1:-1,dy=-Math.abs(B-Y),sy=Y<B?1:-1,e=dx+dy;for(;;){paint({x:X,y:Y});if(X===A&&Y===B)break;let e2=2*e;if(e2>=dy)e+=dy,X+=sx;if(e2<=dx)e+=dx,Y+=sy}}
-function pixel(X,Y){let d=x.getImageData(X,Y,1,1).data;return d}
-function eyedrop(p){let d=pixel(p.x,p.y);if(d[3]){setColor(rgbhex(d[0],d[1],d[2]),"スポイト");tool("pen")}}
-function fill(X,Y){let n=s.size,D=x.getImageData(0,0,n,n),d=D.data,t=pixel(X,Y),q=hexrgb(s.color);if(t[3]===255&&t[0]===q[0]&&t[1]===q[1]&&t[2]===q[2])return;let st=[[X,Y]],seen=new Uint8Array(n*n);function same(a,b){let i=(b*n+a)*4;return d[i]===t[0]&&d[i+1]===t[1]&&d[i+2]===t[2]&&d[i+3]===t[3]}while(st.length){let [a,b]=st.pop();if(a<0||b<0||a>=n||b>=n)continue;let k=b*n+a;if(seen[k]||!same(a,b))continue;seen[k]=1;let i=k*4;d[i]=q[0];d[i+1]=q[1];d[i+2]=q[2];d[i+3]=255;st.push([a+1,b],[a-1,b],[a,b+1],[a,b-1])}x.putImageData(D,0,0);log("塗りつぶし",X+","+Y)}
-c.addEventListener("pointerdown",e=>{e.preventDefault();let p=pix(e);if(!p)return;if(s.tool==="eyedropper")return eyedrop(p);if(s.tool==="fill")return fill(p.x,p.y);if(s.tool==="grid")return;s.drawing=true;s.last=p;c.setPointerCapture?.(e.pointerId);paint(p)});
+function pixel(X,Y){return x.getImageData(X,Y,1,1).data}
+function eyedrop(p){let d=pixel(p.x,p.y);if(d[3]===0)setTransparent("スポイト");else setColor(rgbhex(d[0],d[1],d[2]),"スポイト");tool("pen")}
+function fill(X,Y){let n=s.size,D=x.getImageData(0,0,n,n),d=D.data,t=pixel(X,Y),transparent=s.color==="transparent",q=transparent?null:hexrgb(s.color);if(!q&&!transparent)return false;if((transparent&&t[3]===0)||(!transparent&&t[3]===255&&t[0]===q[0]&&t[1]===q[1]&&t[2]===q[2]))return false;let st=[[X,Y]],seen=new Uint8Array(n*n);function same(a,b){let i=(b*n+a)*4;return d[i]===t[0]&&d[i+1]===t[1]&&d[i+2]===t[2]&&d[i+3]===t[3]}while(st.length){let [a,b]=st.pop();if(a<0||b<0||a>=n||b>=n)continue;let k=b*n+a;if(seen[k]||!same(a,b))continue;seen[k]=1;let i=k*4;if(transparent){d[i]=d[i+1]=d[i+2]=d[i+3]=0}else{d[i]=q[0];d[i+1]=q[1];d[i+2]=q[2];d[i+3]=255}st.push([a+1,b],[a-1,b],[a,b+1],[a,b-1])}x.putImageData(D,0,0);log("塗りつぶし",X+","+Y);return true}
+c.addEventListener("pointerdown",e=>{e.preventDefault();let p=pix(e);if(!p)return;if(s.tool==="eyedropper")return eyedrop(p);if(s.tool==="fill"){saveHistory();if(!fill(p.x,p.y)){history.pop();updateHistoryButtons()}return}if(s.tool==="grid")return;saveHistory();s.drawing=true;s.last=p;c.setPointerCapture?.(e.pointerId);paint(p)});
 c.addEventListener("pointermove",e=>{if(!s.drawing)return;let p=pix(e);if(p&&s.last)line(s.last,p),s.last=p});
 function up(){s.drawing=false;s.last=null}c.addEventListener("pointerup",up);c.addEventListener("pointercancel",up);
 function confirm(title,text,fn){$("mtitle").textContent=title;$("mtext").textContent=text;$("modal").classList.add("show");$("ok").onclick=()=>{$("modal").classList.remove("show");fn()};$("cancel").onclick=()=>$("modal").classList.remove("show")}
-function clear(){x.clearRect(0,0,s.size,s.size);log("全消去",s.size+"×"+s.size);$("status").textContent="キャンバスを全消去しました"}
+function clear(){saveHistory();x.clearRect(0,0,s.size,s.size);log("全消去",s.size+"×"+s.size);$("status").textContent="キャンバスを全消去しました"}
 function palette(){let p=$("palette");p.innerHTML="";s.palette.forEach((v,i)=>{let b=document.createElement("button");b.className="swatch"+(v===s.color?" sel":"");if(v){let z=document.createElement("i");z.style.background=v;b.appendChild(z);b.onclick=()=>setColor(v,"保存パレット")}p.appendChild(b)})}
-$("tools").onclick=e=>{let b=e.target.closest(".tool");if(b)tool(b.dataset.tool)};$("sizes").onclick=e=>{let b=e.target.closest(".size");if(b&&+b.dataset.size!==s.size)confirm("キャンバスサイズを変更","サイズを"+b.dataset.size+"×"+b.dataset.size+"に変更すると現在の作品は消去されます。実行しますか？",()=>init(+b.dataset.size))};
+$("tools").onclick=e=>{let b=e.target.closest(".tool");if(b)tool(b.dataset.tool)};$("sizes").onclick=e=>{let b=e.target.closest(".size");if(b&&+b.dataset.size!==s.size)confirm("キャンバスサイズを変更","サイズを"+b.dataset.size+"×"+b.dataset.size+"に変更すると現在の作品は消去されます。実行しますか？",()=>{saveHistory();init(+b.dataset.size)})};
 $("save").onclick=()=>{
   try{
     // 描画用キャンバスを、そのままPNGとして保存する。
@@ -815,11 +871,148 @@ $("clear2").onclick=()=>confirm("保存パレットを全消去","保存パレ�
   $("status").textContent="保存パレットを全消去しました";
   log("パレット全消去", "50枠を初期化");
 });
-$("reload").onclick=()=>confirm("最初の状態に戻す","現在の作品を消去して16×16に戻します。実行しますか？",()=>{s.tool="pen";s.grid=true;document.querySelectorAll(".tool").forEach(b=>b.classList.toggle("active",b.dataset.tool==="pen"||b.dataset.tool==="grid"));init(16);setColor("#ACDA95","初期化");$("status").textContent="ペンモード";log("内部更新","初期状態")});
-$("add").onclick=()=>{let i=s.palette.indexOf(null);if(s.palette.includes(s.color))return $("status").textContent="その色はすでに保存されています";if(i<0)return $("status").textContent="保存パレットが満タンです（50色）";s.palette[i]=s.color;palette();log("パレット追加",s.color)};
-$("hex").onchange=()=>{let v=$("hex").value.trim().toUpperCase();if(!v.startsWith("#"))v="#"+v;if(!setColor(v,"HEX入力"))$("status").textContent="HEXは #RRGGBB で入力してください"};
+$("reload").onclick=()=>confirm("最初の状態に戻す","現在の作品を消去して16×16に戻します。実行しますか？",()=>{s.tool="pen";s.grid=true;history.length=0;future.length=0;document.querySelectorAll(".tool").forEach(b=>b.classList.toggle("active",b.dataset.tool==="pen"||b.dataset.tool==="grid"));init(16);setColor("#ACDA95","初期化");$("status").textContent="ペンモード";log("内部更新","初期状態")});
+$("add").onclick=()=>{if(s.color==="transparent")return $("status").textContent="透明は保存パレットに登録できません";let i=s.palette.indexOf(null);if(s.palette.includes(s.color))return $("status").textContent="その色はすでに保存されています";if(i<0)return $("status").textContent="保存パレットが満タンです（50色）";s.palette[i]=s.color;palette();log("パレット追加",s.color)};
+$("hex").onchange=()=>{let v=$("hex").value.trim().toUpperCase();if(v==="透明")return setTransparent("HEX入力");if(!v.startsWith("#"))v="#"+v;if(!setColor(v,"HEX入力"))$("status").textContent="HEXは #RRGGBB で入力してください"};
 let pd=null;function picker(e,m){e.preventDefault();pd=m;move(e)}function move(e){if(!pd)return;let r=$(pd==="h"?"ring":"sv").getBoundingClientRect();if(pd==="h"){let dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2,h=Math.atan2(dy,dx)+Math.PI/2;if(h<0)h+=Math.PI*2;s.h=h/(Math.PI*2)}else{s.sat=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));s.val=1-Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))}s.color=rgbhex(...hsvrgb(s.h,s.sat,s.val));uiColor()}function pend(){if(pd)log("カラーピッカー変更",s.color);pd=null}
 $("ring").onpointerdown=e=>picker(e,"h");$("sv").onpointerdown=e=>picker(e,"sv");addEventListener("pointermove",move);addEventListener("pointerup",pend);
+
+/* ===== 画像→ドット機能 ===== */
+let imageImportSize = 16;
+let imageSource = null;
+
+function openImageImport(){
+  $("imageModal").classList.add("show");
+  $("imageFile").value = "";
+  imageSource = null;
+  imageImportSize = 16;
+  document.querySelectorAll("[data-image-size]").forEach(b=>{
+    b.classList.toggle("active", +b.dataset.imageSize === imageImportSize);
+  });
+  $("imageStatus").textContent = "画像を選択してください。";
+}
+
+function imageToPixelArt(img, n){
+  // 画像の中央を正方形として切り出す
+  const srcW = img.naturalWidth || img.width;
+  const srcH = img.naturalHeight || img.height;
+  const side = Math.min(srcW, srcH);
+  const sx = (srcW - side) / 2;
+  const sy = (srcH - side) / 2;
+
+  const work = document.createElement("canvas");
+  work.width = n;
+  work.height = n;
+  const ctx = work.getContext("2d", {willReadFrequently:true});
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(img, sx, sy, side, side, 0, 0, n, n);
+
+  const data = ctx.getImageData(0,0,n,n).data;
+
+  // 各ドットの代表色を取得。
+  // 透明部分は透明のままにし、半透明は背景との混ざりを避けるため
+  // アルファ値が最も高い色を優先する。
+  const out = document.createElement("canvas");
+  out.width = n;
+  out.height = n;
+  const ox = out.getContext("2d");
+  ox.imageSmoothingEnabled = false;
+  const outData = ox.createImageData(n,n);
+
+  for(let y=0;y<n;y++){
+    for(let x0=0;x0<n;x0++){
+      const i=(y*n+x0)*4;
+      outData.data[i]=data[i];
+      outData.data[i+1]=data[i+1];
+      outData.data[i+2]=data[i+2];
+      outData.data[i+3]=data[i+3];
+    }
+  }
+  ox.putImageData(outData,0,0);
+  return out;
+}
+
+$("imageImport").onclick = openImageImport;
+
+$("imageCancel").onclick = ()=>{
+  $("imageModal").classList.remove("show");
+};
+
+document.querySelectorAll("[data-image-size]").forEach(btn=>{
+  btn.onclick=()=>{
+    imageImportSize=+btn.dataset.imageSize;
+    document.querySelectorAll("[data-image-size]").forEach(b=>{
+      b.classList.toggle("active", +b.dataset.imageSize === imageImportSize);
+    });
+  };
+});
+
+$("imageFile").onchange = e=>{
+  const file=e.target.files?.[0];
+  if(!file){
+    imageSource=null;
+    $("imageStatus").textContent="画像を選択してください。";
+    return;
+  }
+  if(!file.type.startsWith("image/")){
+    imageSource=null;
+    $("imageStatus").textContent="画像ファイルを選択してください。";
+    return;
+  }
+
+  const url=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=()=>{
+    imageSource=img;
+    $("imageStatus").textContent=`選択中：${img.naturalWidth}×${img.naturalHeight}px`;
+    URL.revokeObjectURL(url);
+    log("画像読み込み",file.name);
+  };
+  img.onerror=()=>{
+    imageSource=null;
+    $("imageStatus").textContent="画像を読み込めませんでした。";
+    URL.revokeObjectURL(url);
+  };
+  img.src=url;
+};
+
+$("imageExecute").onclick=()=>{
+  if(!imageSource){
+    $("imageStatus").textContent="先に画像を選択してください。";
+    return;
+  }
+
+  try{
+    const n=imageImportSize;
+    const result=imageToPixelArt(imageSource,n);
+
+    // 現在の作品を履歴へ保存してから置き換える
+    saveHistory();
+
+    s.size=n;
+    c.width=c.height=n;
+    x.imageSmoothingEnabled=false;
+    x.clearRect(0,0,n,n);
+    x.drawImage(result,0,0);
+
+    grid();
+    document.querySelectorAll(".size").forEach(b=>{
+      b.classList.toggle("active",+b.dataset.size===n);
+    });
+
+    $("status").textContent=`画像を${n}×${n}のドット絵に変換しました`;
+    log("画像→ドット",n+"×"+n);
+    $("imageModal").classList.remove("show");
+  }catch(err){
+    console.error("[画像→ドット] 変換に失敗しました",err);
+    $("imageStatus").textContent="変換に失敗しました。別の画像で試してください。";
+    log("画像→ドットエラー",err.message||String(err));
+  }
+};
+
+$("imageModal").addEventListener("click",e=>{
+  if(e.target===$("imageModal"))$("imageModal").classList.remove("show");
+});
 
 /* ===== チェキ風機能 ===== */
 function getUsedColors(){
@@ -834,11 +1027,10 @@ function getUsedColors(){
 
 
 
-function drawCheki(){
-  const pc=$("chekiPreview");
-  const ctx=pc.getContext("2d");
+function drawChekiBase(target){
+  const ctx=target.getContext("2d");
   ctx.imageSmoothingEnabled=false;
-  ctx.clearRect(0,0,pc.width,pc.height);
+  ctx.clearRect(0,0,target.width,target.height);
   ctx.fillStyle="#fdfdfd";
   ctx.fillRect(0,0,600,800);
   ctx.strokeStyle="#222";
@@ -883,19 +1075,55 @@ function drawCheki(){
     ctx.font="10px system-ui,sans-serif";
     ctx.fillText(col.toUpperCase(),xx-6,716);
   });
-
-  const qrImage = new Image();
-
-qrImage.onload = () => {
-  ctx.drawImage(qrImage, 500, 650, 75, 75);
-};
-
-qrImage.onerror = () => {
-  console.error("[チェキ風] qr.png の読み込みに失敗しました");
-};
-
-qrImage.src = "qr.png";
 }
+
+function loadChekiQR(){
+  return new Promise((resolve,reject)=>{
+    const qrImage=new Image();
+    qrImage.onload=()=>resolve(qrImage);
+    qrImage.onerror=()=>reject(new Error("qr.png の画像読み込みに失敗しました"));
+    qrImage.src="qr.png";
+  });
+}
+
+async function drawCheki(){
+  const pc=$("chekiPreview");
+  const ctx=pc.getContext("2d");
+  drawChekiBase(pc);
+  try{
+    const qrImage=await loadChekiQR();
+    ctx.drawImage(qrImage,500,650,75,75);
+  }catch(err){
+    console.error("[チェキ風] qr.png の読み込みに失敗しました",err);
+  }
+}
+
+async function createChekiExport(){
+  // プレビューがQR画像によってtaintedされていても、
+  // 保存用には必ず新しいクリーンなcanvasを使う。
+  const out=document.createElement("canvas");
+  out.width=600;
+  out.height=800;
+  drawChekiBase(out);
+
+  try{
+    const qrImage=await loadChekiQR();
+    out.getContext("2d").drawImage(qrImage,500,650,75,75);
+
+    // QRを描いた直後に読み出し可能か確認する。
+    // taintedならこのcanvasは破棄し、QRなしで安全に作り直す。
+    out.getContext("2d").getImageData(0,0,1,1);
+  }catch(err){
+    console.warn("[チェキ風保存] QR画像を保存用canvasへ含められないため、QRなしで保存します",err);
+    const clean=document.createElement("canvas");
+    clean.width=600;
+    clean.height=800;
+    drawChekiBase(clean);
+    return clean;
+  }
+  return out;
+}
+
 function renderUsedColors(targetId="usedColors",statusId="chekiColorStatus"){
   const box=$(targetId),colors=getUsedColors();
   if(!box)return;
@@ -976,12 +1204,13 @@ $("chekiClose").onclick=()=>{
   $("chekiModal").classList.remove("show");
   log("チェキ風プレビュー","閉じる")
 };
-$("chekiSave").onclick=()=>{
+$("chekiSave").onclick=async()=>{
   try{
+    const out=await createChekiExport();
     const a=document.createElement("a");
     const filename=`pixel_art_${s.size}x${s.size}_cheki.png`;
     a.download=filename;
-    a.href=$("chekiPreview").toDataURL("image/png");
+    a.href=out.toDataURL("image/png");
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1000,7 +1229,7 @@ $("saveModal").addEventListener("click",e=>{
   if(e.target===$("saveModal"))$("saveModal").classList.remove("show")
 });
 
-init(16);setColor("#ACDA95");palette();log("起動","描画版");
+$("undo").onclick=undo;$("redo").onclick=redo;init(16);setColor("#ACDA95");palette();updateHistoryButtons();log("起動","描画版");
 })();
 </script>
 </body>
