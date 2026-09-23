@@ -9,10 +9,9 @@
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"
-content="PIXELIEは、ブラウザで簡単にドット絵を作成・保存できる無料・公告なしのピクセルアートエディタです。16x16、32x32、48x48に対応しています。">
+content="PIXELIEは、ブラウザで簡単にドット絵を作成・保存できる無料・公告なしのピクセルアートエディタです。16x16、32x32、48x48、64x64、96x96に対応しています。">
 
 <title>PIXELIE | 無料ドット絵・チェキデザイン作成ツール</title>
-ver-2.0.1
 
 <style>
 
@@ -697,6 +696,18 @@ button{
 .save-cheki-settings.show{display:block}
 .cheki-date{width:100%;padding:10px 12px;border:1.5px solid #222;border-radius:8px;background:#fff}
 .cheki-date-help{font-size:12px;color:#777;margin:5px 0 14px}
+.save-cheki-title{
+  width:100%;
+  padding:10px 12px;
+  border:1.5px solid #222;
+  border-radius:8px;
+  background:#fff;
+}
+.save-cheki-title-help{
+  font-size:12px;
+  color:#777;
+  margin:5px 0 14px;
+}
 .save-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
 .save-modal-actions button{padding:9px 14px;border:1.5px solid #222;border-radius:8px;background:#fff}
 .save-modal-actions .ok{background:#111;color:#fff}
@@ -712,6 +723,18 @@ button{
 .save-cheki-settings.show{display:block}
 .cheki-date{width:100%;padding:10px 12px;border:1.5px solid #222;border-radius:8px;background:#fff}
 .cheki-date-help{font-size:12px;color:#777;margin:5px 0 14px}
+.save-cheki-title{
+  width:100%;
+  padding:10px 12px;
+  border:1.5px solid #222;
+  border-radius:8px;
+  background:#fff;
+}
+.save-cheki-title-help{
+  font-size:12px;
+  color:#777;
+  margin:5px 0 14px;
+}
 .save-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
 .save-modal-actions button{padding:9px 14px;border:1.5px solid #222;border-radius:8px;background:#fff}
 .save-modal-actions .ok{background:#111;color:#fff}
@@ -745,7 +768,7 @@ button{
 <main class="layout">
 <section class="card">
 <div class="stage-wrap"><div class="stage"><canvas id="canvas"></canvas><svg id="grid"></svg></div></div>
-<div class="sizes" id="sizes"><button class="size active" data-size="16">16×16</button><button class="size" data-size="32">32×32</button><button class="size" data-size="48">48×48</button></div>
+<div class="sizes" id="sizes"><button class="size active" data-size="16">16×16</button><button class="size" data-size="32">32×32</button><button class="size" data-size="48">48×48</button><button class="size" data-size="64">64×64</button><button class="size" data-size="96">96×96</button></div>
 <div style="display:flex;justify-content:center;margin-top:10px">
   <button class="btn" id="imageImport">画像をドット化</button>
 </div>
@@ -774,6 +797,10 @@ button{
       <div class="title">日付を入力</div>
       <input class="cheki-date" id="chekiDate" type="date" aria-label="チェキに表示する日付">
       <p class="cheki-date-help">日付はチェキ風画像に表示されます。</p>
+      <div class="title">タイトル（「_PIXELIE」の前）</div>
+      <input class="save-cheki-title" id="chekiTitle" type="text" maxlength="20"
+             value="Pixel Art" aria-label="チェキ風画像のタイトル">
+      <p class="save-cheki-title-help">アルファベット・数字・記号・スペースを20文字以内で入力できます。</p>
       <div class="title">使用色から最大5色を選択</div>
       <div class="used-colors" id="saveUsedColors"></div>
       <p class="cheki-help" id="saveColorStatus">選択：0 / 5色</p>
@@ -805,13 +832,13 @@ button{
 <div class="modalbg" id="imageModal">
   <div class="modal">
     <h2>画像をドット化</h2>
-    <p>画像を選択すると、正方形に自動調整して16×16 / 32×32 / 48×48のドット絵に変換します。</p>
+    <p>画像を選択すると、正方形に自動調整して16×16 / 32×32 / 48×48 / 64×64 / 96×96のドット絵に変換します。</p>
     <input id="imageFile" type="file" accept="image/*" style="width:100%;margin:8px 0 12px">
     <div class="title">変換サイズ</div>
     <div class="sizes" id="imageSizes">
       <button class="size active" data-image-size="16">16×16</button>
       <button class="size" data-image-size="32">32×32</button>
-      <button class="size" data-image-size="48">48×48</button>
+      <button class="size" data-image-size="48">48×48</button><button class="size" data-image-size="64">64×64</button><button class="size" data-image-size="96">96×96</button>
     </div>
     <p id="imageStatus" style="font-size:12px;color:#777;margin:10px 0 0">画像を選択してください。</p>
     <div class="modal-actions" style="margin-top:14px">
@@ -824,7 +851,7 @@ button{
 
 <script>
 (()=>{"use strict";
-const MAX=50,SIZES=[16,32,48],s={size:16,tool:"pen",grid:true,color:"#ACDA95",h:0,sat:.38,val:.85,palette:Array(MAX).fill(null),drawing:false,last:null,chekiColors:[],chekiDate:""};
+const MAX=50,SIZES=[16,32,48,64,96],s={size:16,tool:"pen",grid:true,color:"#ACDA95",h:0,sat:.38,val:.85,palette:Array(MAX).fill(null),drawing:false,last:null,chekiColors:[],chekiDate:"",chekiTitle:"Pixel Art"};
 
 /* ===== Undo / Redo ===== */
 const HISTORY_MAX=5;
@@ -888,7 +915,7 @@ $("clear2").onclick=()=>confirm("保存パレットを全消去","保存パレ�
   $("status").textContent="保存パレットを全消去しました";
   log("パレット全消去", "50枠を初期化");
 });
-$("reload").onclick=()=>confirm("最初の状態に戻す","現在の作品を消去して16×16に戻します。実行しますか？",()=>{s.tool="pen";s.grid=true;history.length=0;future.length=0;document.querySelectorAll(".tool").forEach(b=>b.classList.toggle("active",b.dataset.tool==="pen"||b.dataset.tool==="grid"));init(16);setColor("#ACDA95","初期化");$("status").textContent="ペンモード";log("内部更新","初期状態")});
+$("reload").onclick=()=>confirm("最初の状態に戻す","現在の作品を消去して16×16に戻します。実行しますか？",()=>{s.tool="pen";s.grid=true;history.length=0;future.length=0;document.querySelectorAll(".tool").forEach(b=>b.classList.toggle("active",b.dataset.tool==="pen"||b.dataset.tool==="grid"));init(16);s.chekiTitle="Pixel Art";setColor("#ACDA95","初期化");$("status").textContent="ペンモード";log("内部更新","初期状態")});
 $("add").onclick=()=>{if(s.color==="transparent")return $("status").textContent="透明は保存パレットに登録できません";let i=s.palette.indexOf(null);if(s.palette.includes(s.color))return $("status").textContent="その色はすでに保存されています";if(i<0)return $("status").textContent="保存パレットが満タンです（50色）";s.palette[i]=s.color;palette();log("パレット追加",s.color)};
 $("hex").onchange=()=>{let v=$("hex").value.trim().toUpperCase();if(v==="透明")return setTransparent("HEX入力");if(!v.startsWith("#"))v="#"+v;if(!setColor(v,"HEX入力"))$("status").textContent="HEXは #RRGGBB で入力してください"};
 let pd=null;function picker(e,m){e.preventDefault();pd=m;move(e)}function move(e){if(!pd)return;let r=$(pd==="h"?"ring":"sv").getBoundingClientRect();if(pd==="h"){let dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2,h=Math.atan2(dy,dx)+Math.PI/2;if(h<0)h+=Math.PI*2;s.h=h/(Math.PI*2)}else{s.sat=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));s.val=1-Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))}s.color=rgbhex(...hsvrgb(s.h,s.sat,s.val));uiColor()}function pend(){if(pd)log("カラーピッカー変更",s.color);pd=null}
@@ -1071,7 +1098,7 @@ async function drawCheki(){
 
   ctx.fillStyle="#111";
   ctx.font="bold 25px system-ui,sans-serif";
-  ctx.fillText("Pixel Art_PIXELIE",40,615);
+  ctx.fillText(`${s.chekiTitle}_PIXELIE`,40,615);
   ctx.font="18px system-ui,sans-serif";
   ctx.fillText(`${s.size} × ${s.size}`,40,648);
   if(s.chekiDate){
@@ -1187,8 +1214,21 @@ $("saveExecute").onclick=async()=>{
       dateInput?.focus();
       return;
     }
-    s.chekiDate=dateInput.value;
-    await drawCheki(); $("saveModal").classList.remove("show"); $("chekiModal").classList.add("show");
+    const titleInput=$("chekiTitle");
+const title=(titleInput?.value||"").trim() || "Pixel Art";
+if(title.length>20){
+  $("status").textContent="タイトルは20文字以内で入力してください";
+  titleInput?.focus();
+  return;
+}
+if(!/^[A-Za-z0-9 !-~]+$/.test(title)){
+  $("status").textContent="タイトルはアルファベット・数字・記号・スペースのみ使用できます";
+  titleInput?.focus();
+  return;
+}
+s.chekiDate=dateInput.value;
+s.chekiTitle=title;
+await drawCheki(); $("saveModal").classList.remove("show"); $("chekiModal").classList.add("show");
     log("チェキ風プレビュー","表示");
   }
 };
