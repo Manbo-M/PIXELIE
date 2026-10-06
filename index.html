@@ -6,6 +6,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"
@@ -15,6 +16,7 @@ content="PIXELIEは、ブラウザで簡単にドット絵を作成・保存で�
 <style>
 
 /* ver 2.1.0 */ 
+/*916行目にグリッドについての記述あり。現verでは透明度60%*/
 
 :root{ 
   --bg:#eeeeee; 
@@ -114,7 +116,11 @@ button{
 .icon{ 
   width:42px; 
   height:42px; 
-  font-size:22px 
+  font-size:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
 }
 .icon:disabled{opacity:.4;cursor:not-allowed}
 
@@ -130,6 +136,26 @@ button{
   height:62px;
   padding:4px 2px;
   font-size:22px
+}
+
+/* ===== 拡大・縮小・移動 ===== */
+.view-controls{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+  margin-top:6px
+}
+
+.view-controls .icon{
+  width:auto;
+  height:44px;
+  padding:4px 2px;
+  font-size:22px
+}
+
+.view-controls .icon.active{
+  background:#111;
+  color:#fff
 }
 
 
@@ -177,6 +203,17 @@ button{
       #fff 0 
     ) 0 0/20px 20px 
 } 
+
+/* ===== 枠内ズーム用コンテンツ ===== */
+.stage-content{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  transform-origin:center center;
+  will-change:auto;
+  touch-action:none;
+}
 
 #canvas, 
 #grid{ 
@@ -250,7 +287,7 @@ button{
   font-size:11px 
 } 
 
-.tool span:first-child{ 
+.tool .ph{ 
   font-size:21px 
 } 
 
@@ -532,7 +569,7 @@ button{
     min-height:57px 
   } 
 
-  .tool span:first-child{ 
+  .tool .ph{ 
     font-size:18px 
   } 
 }
@@ -761,14 +798,44 @@ button{
     padding:15px;
   }
 }
+
+.discord-link{
+  width:42px;
+  height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  overflow:hidden;
+  flex:none;
+  cursor:pointer
+}
+.discord-link img{
+  width:100%;
+  height:100%;
+  display:block
+}
+.discord-link:hover{
+  opacity:.85
+}
 </style>
 </head>
 <body>
 <div class="app">
-<header class="top"><div class="brand-area"><img class="brand-logo" src="IMG_2852.png" alt="マンボウ"><div class="brand">PIXELIE</div></div><div class="actions"><button class="btn icon" id="reload" title="サイト内の更新">↻</button><button class="btn" id="save">保存</button></div></header>
+<header class="top">
+  <div class="brand-area">
+    <img class="brand-logo" src="IMG_2852.png" alt="マンボウ">
+    <div class="brand">PIXELIE</div>
+  </div>
+  <div class="actions">
+    <a class="discord-link" href="https://discord.gg/rMBeNQSQqt" title="PIXELIE Discord（準備中）" aria-label="PIXELIE Discord（準備中）"><img src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Discord"></a>
+    <button class="btn icon" id="reload" title="サイト内の更新"><i class="ph ph-arrows-clockwise"></i></button>
+    <button class="btn" id="save">保存</button>
+  </div>
+</header>
 <main class="layout">
 <section class="card">
-<div class="stage-wrap"><div class="stage"><canvas id="canvas"></canvas><svg id="grid"></svg></div></div>
+<div class="stage-wrap"><div class="stage"><div class="stage-content" id="stageContent"><canvas id="canvas"></canvas><svg id="grid"></svg></div></div></div>
 <div class="sizes" id="sizes"><button class="size active" data-size="16">16×16</button><button class="size" data-size="32">32×32</button><button class="size" data-size="48">48×48</button><button class="size" data-size="64">64×64</button><button class="size" data-size="96">96×96</button></div>
 <div style="display:flex;justify-content:center;margin-top:10px">
   <button class="btn" id="imageImport">画像をドット化</button>
@@ -777,10 +844,11 @@ button{
 </section>
 <aside class="card controls">
 <section><div class="title">ツール</div><div class="tools" id="tools">
-<button class="tool active" data-tool="pen"><span>✎</span>ペン</button><button class="tool" data-tool="eraser"><span>⌫</span>消しゴム</button><button class="tool" data-tool="eyedropper"><span>⌁</span>スポイト</button><button class="tool" data-tool="fill"><span>▰</span>塗りつぶし</button><button class="tool active" data-tool="grid"><span>▦</span>グリッド ON</button>
-</div><div class="history-controls"><button class="btn icon" id="undo" title="一つ戻す">←</button><button class="btn icon" id="redo" title="一つ進む">→</button></div>
+<button class="tool active" data-tool="pen"><i class="ph ph-pencil"></i>ペン</button><button class="tool" data-tool="eraser"><i class="ph ph-eraser"></i>消しゴム</button><button class="tool" data-tool="eyedropper"><i class="ph ph-eyedropper-sample"></i>スポイト</button><button class="tool" data-tool="fill"><i class="ph ph-paint-bucket"></i>塗りつぶし</button><button class="tool active" data-tool="grid"><i class="ph ph-grid-four"></i>グリッド ON</button>
+</div><div class="history-controls"><button class="btn icon" id="undo" title="一つ戻す"><i class="ph ph-arrow-u-up-left"></i></button><button class="btn icon" id="redo" title="一つ進む"><i class="ph ph-arrow-u-up-right"></i></button></div>
+<div class="view-controls"><button class="btn icon" id="zoomIn" title="拡大"><i class="ph ph-magnifying-glass-plus"></i></button><button class="btn icon" id="zoomOut" title="縮小"><i class="ph ph-magnifying-glass-minus"></i></button><button class="btn icon" id="move" title="移動"><i class="ph ph-cursor"></i></button></div>
 </section>
-<section><div class="title">カラー</div><div class="colors"><div class="picker"><div class="ring" id="ring"></div><div class="sv" id="sv"><i class="mark" id="svmark"></i></div><i class="mark" id="humark"></i></div><div class="side"><div class="current"><i class="preview" id="preview"></i><b id="label">#ACDA95</b></div><div class="hexrow"><input class="hex" id="hex" value="#ACDA95" maxlength="7"><button class="plus" id="add">+</button></div><div class="status" id="status">ペンモード</div></div></div></section>
+<section><div class="title">カラー</div><div class="colors"><div class="picker"><div class="ring" id="ring"></div><div class="sv" id="sv"><i class="mark" id="svmark"></i></div><i class="mark" id="humark"></i></div><div class="side"><div class="current"><i class="preview" id="preview"></i><b id="label">#ACDA95</b></div><div class="hexrow"><input class="hex" id="hex" value="#ACDA95" maxlength="7"><button class="plus" id="add"><i class="ph ph-plus-square"></i></button></div><div class="status" id="status">ペンモード</div></div></div></section>
 <section><div class="title">保存パレット（最大50色）</div><div class="palette" id="palette"></div></section>
 <button class="btn danger" id="clear2">パレット全消去</button>
 </aside>
@@ -865,8 +933,88 @@ function undo(){if(!history.length)return;future.push(captureState());restoreHis
 function redo(){if(!future.length)return;history.push(captureState());if(history.length>HISTORY_MAX)history.shift();restoreHistory(future.pop());$("status").textContent="一つ進めました";log("一つ進む")}
 function updateHistoryButtons(){const undoBtn=$("undo"),redoBtn=$("redo");if(undoBtn)undoBtn.disabled=history.length===0;if(redoBtn)redoBtn.disabled=future.length===0}
 
-const $=id=>document.getElementById(id),c=$("canvas"),x=c.getContext("2d",{alpha:true}),g=$("grid"),stage=document.querySelector(".stage");
+const $=id=>document.getElementById(id),c=$("canvas"),x=c.getContext("2d",{alpha:true}),g=$("grid"),stage=document.querySelector(".stage"),stageContent=$("stageContent");
 function log(a,b=""){console.log("[PixelArt] "+a+(b?" — "+b:""))}
+
+/* ===== 枠内ズーム・移動 ===== */
+const view={
+  zoom:1,
+  panX:0,
+  panY:0,
+  moving:false,
+  dragging:false,
+  startX:0,
+  startY:0,
+  basePanX:0,
+  basePanY:0
+};
+const ZOOM_MIN=1;
+const ZOOM_MAX=8;
+const ZOOM_STEP=1.5;
+
+function clampPan(){
+  const w=stage.clientWidth,h=stage.clientHeight;
+  const maxX=Math.max(0,(view.zoom-1)*w/2);
+  const maxY=Math.max(0,(view.zoom-1)*h/2);
+  view.panX=Math.max(-maxX,Math.min(maxX,view.panX));
+  view.panY=Math.max(-maxY,Math.min(maxY,view.panY));
+}
+
+function applyView(){
+  clampPan();
+
+  // 1倍・移動なしまで戻ったらtransformそのものを解除する。
+  // scale(1) / translate3d(0,0,0)を残すとChromeが変換後の
+  // SVGグリッドを再利用し、一部の線が薄くなることがある。
+  if(view.zoom===1 && view.panX===0 && view.panY===0){
+    stageContent.style.transform="none";
+  }else{
+    stageContent.style.transform=
+      `translate3d(${view.panX}px,${view.panY}px,0) scale(${view.zoom})`;
+  }
+
+  $("zoomOut").disabled=view.zoom<=ZOOM_MIN;
+  $("zoomIn").disabled=view.zoom>=ZOOM_MAX;
+  $("move").classList.toggle("active",view.moving);
+  $("move").title=view.moving?"移動モードを解除":"移動モード";
+
+  // グリッドを再生成して再描画を促す。
+  if(typeof grid==="function") grid();
+}
+
+function resetView(){
+  view.zoom=1;
+  view.panX=0;
+  view.panY=0;
+  view.dragging=false;
+  applyView();
+}
+
+function setZoom(next){
+  const oldZoom=view.zoom;
+  view.zoom=Math.max(ZOOM_MIN,Math.min(ZOOM_MAX,next));
+  if(view.zoom===oldZoom)return;
+  const ratio=view.zoom/oldZoom;
+  view.panX*=ratio;
+  view.panY*=ratio;
+  applyView();
+  $("status").textContent=`表示倍率：${Math.round(view.zoom*100)}%`;
+  log("ズーム",Math.round(view.zoom*100)+"%");
+}
+
+function toggleMove(){
+  view.moving=!view.moving;
+  view.dragging=false;
+  applyView();
+  $("status").textContent=view.moving?"移動モード：キャンバスをドラッグできます":"ペンモード";
+  log("移動モード",view.moving?"ON":"OFF");
+}
+
+stage.addEventListener("wheel",e=>{
+  e.preventDefault();
+  const next=e.deltaY<0?view.zoom*ZOOM_STEP:view.zoom/ZOOM_STEP;
+  setZoom(next);
+},{passive:false});
 function rgbhex(r,g,b){return"#"+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,"0")).join("").toUpperCase()}
 function hsvrgb(h,S,v){let i=Math.floor(h*6),f=h*6-i,p=v*(1-S),q=v*(1-f*S),t=v*(1-(1-f)*S);return[[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i%6].map(z=>Math.round(z*255))}
 function hexrgb(h){h=h.replace("#","");if(!/^[0-9a-f]{6}$/i.test(h))return null;return[0,2,4].map(i=>parseInt(h.slice(i,i+2),16))}
@@ -874,18 +1022,74 @@ function rgbhsv(r,g,b){r/=255;g/=255;b/=255;let M=Math.max(r,g,b),m=Math.min(r,g
 function setColor(hex,why=""){let q=hexrgb(hex);if(!q)return false;let z=rgbhsv(...q);s.color=rgbhex(...q);s.h=z.h;s.sat=z.s;s.val=z.v;uiColor();if(why)log("色変更",s.color+" ("+why+")");return true}
 function setTransparent(why=""){s.color="transparent";uiColor();if(why)log("色変更","透明 ("+why+")");return true}
 function uiColor(){const isTransparent=s.color==="transparent";$("hex").value=isTransparent?"透明":s.color;$("label").textContent=isTransparent?"透明":s.color;$("preview").style.background=isTransparent?"repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 50%/10px 10px":s.color;$("sv").style.setProperty("--h",s.h*360);let a=s.h*Math.PI*2-Math.PI/2;$("humark").style.left=(50+Math.cos(a)*50)+"%";$("humark").style.top=(50+Math.sin(a)*50)+"%";$("svmark").style.left=s.sat*100+"%";$("svmark").style.top=(1-s.val)*100+"%";palette()}
-function grid(){g.innerHTML="";let n=s.size;g.setAttribute("viewBox","0 0 "+n+" "+n);g.style.display=s.grid?"block":"none";for(let i=0;i<=n;i++){for(let q=0;q<2;q++){let l=document.createElementNS("http://www.w3.org/2000/svg","line");if(q){l.setAttribute("x1",0);l.setAttribute("x2",n);l.setAttribute("y1",i);l.setAttribute("y2",i)}else{l.setAttribute("x1",i);l.setAttribute("x2",i);l.setAttribute("y1",0);l.setAttribute("y2",n)}l.setAttribute("stroke","rgba(0,0,0,.20)");l.setAttribute("stroke-width",".08");l.setAttribute("shape-rendering","crispEdges");g.appendChild(l)}}}
-function init(n=s.size){s.size=n;c.width=c.height=n;x.imageSmoothingEnabled=false;x.clearRect(0,0,n,n);grid();document.querySelectorAll(".size").forEach(b=>b.classList.toggle("active",+b.dataset.size===n));log("キャンバス初期化",n+"×"+n)}
-function tool(t){if(t==="grid"){s.grid=!s.grid;grid();document.querySelector('[data-tool="grid"]').innerHTML="<span>▦</span>グリッド "+(s.grid?"ON":"OFF");log("グリッド",s.grid?"ON":"OFF");return}s.tool=t;document.querySelectorAll(".tool").forEach(b=>{if(b.dataset.tool!=="grid")b.classList.toggle("active",b.dataset.tool===t)});$("status").textContent={pen:"ペンモード",eraser:"消しゴムモード",eyedropper:"スポイトモード",fill:"塗りつぶしモード"}[t];log("ツール変更",t)}
-function pix(e){let r=c.getBoundingClientRect(),X=Math.floor((e.clientX-r.left)/r.width*s.size),Y=Math.floor((e.clientY-r.top)/r.height*s.size);return X>=0&&Y>=0&&X<s.size&&Y<s.size?{x:X,y:Y}:null}
+function grid(){g.innerHTML="";let n=s.size;g.setAttribute("viewBox","0 0 "+n+" "+n);g.style.display=s.grid?"block":"none";for(let i=0;i<=n;i++){for(let q=0;q<2;q++){let l=document.createElementNS("http://www.w3.org/2000/svg","line");if(q){l.setAttribute("x1",0);l.setAttribute("x2",n);l.setAttribute("y1",i);l.setAttribute("y2",i)}else{l.setAttribute("x1",i);l.setAttribute("x2",i);l.setAttribute("y1",0);l.setAttribute("y2",n)}l.setAttribute("stroke","rgba(0,0,0,.60)");l.setAttribute("stroke-width",".08");l.setAttribute("shape-rendering","crispEdges");g.appendChild(l)}}}
+function init(n=s.size){s.size=n;c.width=c.height=n;x.imageSmoothingEnabled=false;x.clearRect(0,0,n,n);grid();resetView();document.querySelectorAll(".size").forEach(b=>b.classList.toggle("active",+b.dataset.size===n));log("キャンバス初期化",n+"×"+n)}
+function tool(t){if(t==="grid"){s.grid=!s.grid;grid();document.querySelector('[data-tool="grid"]').innerHTML='<i class="ph ph-grid-four"></i>グリッド '+(s.grid?"ON":"OFF");log("グリッド",s.grid?"ON":"OFF");return}s.tool=t;document.querySelectorAll(".tool").forEach(b=>{if(b.dataset.tool!=="grid")b.classList.toggle("active",b.dataset.tool===t)});$("status").textContent={pen:"ペンモード",eraser:"消しゴムモード",eyedropper:"スポイトモード",fill:"塗りつぶしモード"}[t];log("ツール変更",t)}
+function pix(e){
+  const r=stage.getBoundingClientRect();
+  const w=stage.clientWidth,h=stage.clientHeight;
+  const border=stage.clientLeft||0;
+  const sx=e.clientX-r.left-border;
+  const sy=e.clientY-r.top-border;
+  const localX=(sx-w/2-view.panX)/view.zoom+w/2;
+  const localY=(sy-h/2-view.panY)/view.zoom+h/2;
+  const X=Math.floor(localX/w*s.size);
+  const Y=Math.floor(localY/h*s.size);
+  return X>=0&&Y>=0&&X<s.size&&Y<s.size?{x:X,y:Y}:null
+}
 function paint(p){if(s.tool==="eraser"||s.color==="transparent")x.clearRect(p.x,p.y,1,1);else x.fillStyle=s.color,x.fillRect(p.x,p.y,1,1)}
 function line(a,b){let X=a.x,Y=a.y,A=b.x,B=b.y,dx=Math.abs(A-X),sx=X<A?1:-1,dy=-Math.abs(B-Y),sy=Y<B?1:-1,e=dx+dy;for(;;){paint({x:X,y:Y});if(X===A&&Y===B)break;let e2=2*e;if(e2>=dy)e+=dy,X+=sx;if(e2<=dx)e+=dx,Y+=sy}}
 function pixel(X,Y){return x.getImageData(X,Y,1,1).data}
 function eyedrop(p){let d=pixel(p.x,p.y);if(d[3]===0)setTransparent("スポイト");else setColor(rgbhex(d[0],d[1],d[2]),"スポイト");tool("pen")}
 function fill(X,Y){let n=s.size,D=x.getImageData(0,0,n,n),d=D.data,t=pixel(X,Y),transparent=s.color==="transparent",q=transparent?null:hexrgb(s.color);if(!q&&!transparent)return false;if((transparent&&t[3]===0)||(!transparent&&t[3]===255&&t[0]===q[0]&&t[1]===q[1]&&t[2]===q[2]))return false;let st=[[X,Y]],seen=new Uint8Array(n*n);function same(a,b){let i=(b*n+a)*4;return d[i]===t[0]&&d[i+1]===t[1]&&d[i+2]===t[2]&&d[i+3]===t[3]}while(st.length){let [a,b]=st.pop();if(a<0||b<0||a>=n||b>=n)continue;let k=b*n+a;if(seen[k]||!same(a,b))continue;seen[k]=1;let i=k*4;if(transparent){d[i]=d[i+1]=d[i+2]=d[i+3]=0}else{d[i]=q[0];d[i+1]=q[1];d[i+2]=q[2];d[i+3]=255}st.push([a+1,b],[a-1,b],[a,b+1],[a,b-1])}x.putImageData(D,0,0);log("塗りつぶし",X+","+Y);return true}
-c.addEventListener("pointerdown",e=>{e.preventDefault();let p=pix(e);if(!p)return;if(s.tool==="eyedropper")return eyedrop(p);if(s.tool==="fill"){saveHistory();if(!fill(p.x,p.y)){history.pop();updateHistoryButtons()}return}if(s.tool==="grid")return;saveHistory();s.drawing=true;s.last=p;c.setPointerCapture?.(e.pointerId);paint(p)});
-c.addEventListener("pointermove",e=>{if(!s.drawing)return;let p=pix(e);if(p&&s.last)line(s.last,p),s.last=p});
-function up(){s.drawing=false;s.last=null}c.addEventListener("pointerup",up);c.addEventListener("pointercancel",up);
+c.addEventListener("pointerdown",e=>{
+  e.preventDefault();
+
+  if(view.moving){
+    view.dragging=true;
+    view.startX=e.clientX;
+    view.startY=e.clientY;
+    view.basePanX=view.panX;
+    view.basePanY=view.panY;
+    c.setPointerCapture?.(e.pointerId);
+    return;
+  }
+
+  let p=pix(e);
+  if(!p)return;
+  if(s.tool==="eyedropper")return eyedrop(p);
+  if(s.tool==="fill"){
+    saveHistory();
+    if(!fill(p.x,p.y)){history.pop();updateHistoryButtons()}
+    return;
+  }
+  if(s.tool==="grid")return;
+  saveHistory();
+  s.drawing=true;
+  s.last=p;
+  c.setPointerCapture?.(e.pointerId);
+  paint(p)
+});
+
+c.addEventListener("pointermove",e=>{
+  if(view.dragging){
+    view.panX=view.basePanX+(e.clientX-view.startX);
+    view.panY=view.basePanY+(e.clientY-view.startY);
+    applyView();
+    return;
+  }
+  if(!s.drawing)return;
+  let p=pix(e);
+  if(p&&s.last)line(s.last,p),s.last=p
+});
+
+function up(){
+  s.drawing=false;
+  s.last=null;
+  view.dragging=false;
+}
+c.addEventListener("pointerup",up);
+c.addEventListener("pointercancel",up);
 function confirm(title,text,fn){$("mtitle").textContent=title;$("mtext").textContent=text;$("modal").classList.add("show");$("ok").onclick=()=>{$("modal").classList.remove("show");fn()};$("cancel").onclick=()=>$("modal").classList.remove("show")}
 function clear(){saveHistory();x.clearRect(0,0,s.size,s.size);log("全消去",s.size+"×"+s.size);$("status").textContent="キャンバスを全消去しました"}
 function palette(){let p=$("palette");p.innerHTML="";s.palette.forEach((v,i)=>{let b=document.createElement("button");b.className="swatch"+(v===s.color?" sel":"");if(v){let z=document.createElement("i");z.style.background=v;b.appendChild(z);b.onclick=()=>setColor(v,"保存パレット")}p.appendChild(b)})}
@@ -1041,6 +1245,7 @@ $("imageExecute").onclick=()=>{
     x.drawImage(result,0,0);
 
     grid();
+    resetView();
     document.querySelectorAll(".size").forEach(b=>{
       b.classList.toggle("active",+b.dataset.size===n);
     });
@@ -1067,7 +1272,7 @@ function getUsedColors(){
     const h=rgbhex(d[i],d[i+1],d[i+2]);
     if(!seen.has(h)){seen.add(h);colors.push(h)}
   }
-  return colors
+  return colors;
 }
 
 
@@ -1262,7 +1467,21 @@ $("saveModal").addEventListener("click",e=>{
   if(e.target===$("saveModal"))$("saveModal").classList.remove("show")
 });
 
-$("undo").onclick=undo;$("redo").onclick=redo;init(16);setColor("#ACDA95");palette();updateHistoryButtons();log("起動","描画版");
+$("undo").onclick=undo;
+$("redo").onclick=redo;
+
+$("zoomIn").onclick=()=>setZoom(view.zoom*ZOOM_STEP);
+$("zoomOut").onclick=()=>setZoom(view.zoom/ZOOM_STEP);
+$("move").onclick=toggleMove;
+
+window.addEventListener("resize",()=>applyView());
+
+resetView();
+init(16);
+setColor("#ACDA95");
+palette();
+updateHistoryButtons();
+log("起動","描画版・枠内ズーム対応");
 })();
 </script>
 </body>
